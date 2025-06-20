@@ -426,18 +426,20 @@
                         <el-radio :value="true">{{ t('openDebug') }}</el-radio>
                     </el-radio-group>
                 </el-form-item>
-                <el-form-item :label="t('releaseNotes')">
-                    <el-input
-                        v-model="store.currentProject.desktop.pubBody"
-                        type="textarea"
-                        disabled
-                        autocomplete="off"
-                        autoCapitalize="off"
-                        autoCorrect="off"
-                        spellCheck="false"
-                        :placeholder="t('inputRelNotes')"
-                    />
-                </el-form-item>
+                <el-scrollbar>
+                    <el-form-item :label="t('releaseNotes')">
+                        <el-input
+                            v-model="store.currentProject.desktop.pubBody"
+                            type="textarea"
+                            disabled
+                            autocomplete="off"
+                            autoCapitalize="off"
+                            autoCorrect="off"
+                            spellCheck="false"
+                            :placeholder="t('inputRelNotes')"
+                        />
+                    </el-form-item>
+                </el-scrollbar>
             </el-form>
             <span class="pubNotesTips">
                 <span>{{ t('pubNotesTips') }}</span>
@@ -1632,11 +1634,13 @@ const updateTauriConfig = async () => {
 // local publish
 const easyLocal = async () => {
     console.log('easyLocal')
-    // copy pp to save path
-    const exe_dir = await invoke('get_exe_dir')
-    console.log('exe_dir', exe_dir)
-    // update pp config
-    // publish local client
+    const targetDir = savePath.value || (await downloadDir())
+    // build local
+    invoke('build_local', {
+        targetDir: targetDir,
+        exeName: store.currentProject.showName,
+        config: store.currentProject.more.windows,
+    })
 }
 
 // new publish version
@@ -1683,6 +1687,13 @@ const publishWeb = async () => {
             'build error',
             'PakePlus'
         )
+        ElMessageBox.confirm('跳转到常见问题查看解决办法', '发布失败', {
+            confirmButtonText: 'OK',
+            type: 'warning',
+            center: true,
+        }).finally(() => {
+            openUrl(urlMap.questiondoc)
+        })
     }
 }
 
@@ -1722,7 +1733,7 @@ const dispatchAction = async () => {
             ? dispatchRes.data.message
             : dispatchRes.status
         warning.value = t('dispatchError') + ': ' + message
-        oneMessage.error(warning.value)
+        // oneMessage.error(warning.value)
         createIssue(
             store.currentProject.name,
             store.currentProject.showName,
@@ -1733,7 +1744,7 @@ const dispatchAction = async () => {
             'PakePlus'
         )
         buildLoading.value = false
-        return
+        throw new Error(t('dispatchError') + ': ' + message)
     } else {
         buildSecondTimer = setInterval(() => {
             buildTime += 1
@@ -1922,6 +1933,7 @@ onMounted(async () => {
         // initJsFileContents()
         const window = getCurrentWindow()
         window.setTitle(`${store.currentProject.name}`)
+        methodChange('local')
     }
     console.log('route.query', route.query)
     const delrelease = route.query.delrelease
