@@ -1,22 +1,579 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <link rel="stylesheet" href="styles.css" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus App</title>
-        <script type="module" src="/main.js" defer></script>
-    </head>
+<html lang="zh-CN">
 
-    <body>
-        <main class="container">
-            <h1>Welcome to PakePlus</h1>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <title>Windows 版本数据编辑器</title>
+    <style>
+        /* 为输入框添加样式，使其更美观 */
+        input[type="text"],
+        input[type="password"] {
+            transition: border-color 0.3s ease;
+            padding-top: 0.05rem;
+            padding-bottom: 0.05rem;
+        }
 
-            <form class="row" id="greet-form">
-                <input id="greet-input" placeholder="Enter a name..." />
-                <button type="submit">Greet</button>
-            </form>
-            <p id="greet-msg"></p>
-        </main>
-    </body>
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+        }
+
+        /* 为按钮添加样式，使其更美观 */
+        button {
+            transition: background-color 0.3s ease;
+            padding-top: 0.05rem;
+            padding-bottom: 0.05rem;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        /* 调整表格单元格的内边距，进一步减少上下内边距 */
+        table td,
+        table th {
+            padding: 0.05rem 0.5rem;
+        }
+
+        /* 调整容器宽度，使用 Tailwind 类让容器自适应宽度 */
+        .container {
+            width: auto;
+            max-width: 90%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 调整表格最小宽度 */
+        table {
+            width: 100%;
+        }
+
+        /* 按钮横排样式 */
+        .action-buttons {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 300px;
+            border-radius: 8px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 font-sans flex flex-col items-center justify-center min-h-screen">
+    <!-- 模态框 -->
+    <div id="password-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 class="text-xl font-bold mb-2 text-center">请输入管理员密码</h2>
+            <input type="password" id="admin-password" placeholder="密码" class="border border-gray-300 p-2 rounded w-full mb-2">
+            <button id="verify-button" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600 w-full">验证</button>
+        </div>
+    </div>
+
+    <div class="container p-8 bg-white rounded-lg shadow-md mx-auto" id="main-container" style="display: none;">
+        <h1 class="text-3xl font-bold mb-4 text-center">Windows 版本数据编辑器</h1>
+        <table class="bg-white border border-gray-300 mx-auto">
+            <thead>
+                <tr>
+                    <th class="py-2 px-4 border-b">名称</th>
+                    <th class="py-2 px-4 border-b">内核版本</th>
+                    <th class="py-2 px-4 border-b">架构</th>
+                    <th class="py-2 px-4 border-b">语言</th>
+                    <th class="py-2 px-4 border-b">大小</th>
+                    <th class="py-2 px-4 border-b">发布日期</th>
+                    <th class="py-2 px-4 border-b">下载链接</th>
+                    <th class="py-2 px-4 border-b">操作</th>
+                </tr>
+            </thead>
+            <tbody id="data-table">
+                <!-- 数据将通过 JavaScript 动态插入 -->
+            </tbody>
+        </table>
+        <div class="mt-4 flex flex-col items-center">
+            <h2 class="text-xl font-bold mb-2 text-center">添加新数据</h2>
+            <div class="flex flex-wrap justify-center gap-2">
+                <input type="text" id="new-name" placeholder="名称" class="border border-gray-300 p-2 rounded">
+                <input type="text" id="new-kernel-version" placeholder="内核版本" class="border border-gray-300 p-2 rounded">
+                <input type="text" id="new-architecture" placeholder="架构" class="border border-gray-300 p-2 rounded">
+                <input type="text" id="new-language" placeholder="语言" class="border border-gray-300 p-2 rounded">
+                <input type="text" id="new-size" placeholder="大小" class="border border-gray-300 p-2 rounded">
+                <input type="text" id="new-release-date" placeholder="发布日期" class="border border-gray-300 p-2 rounded">
+                <input type="text" id="new-download-url" placeholder="下载链接" class="border border-gray-300 p-2 rounded">
+                <button id="add-button" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600" disabled>添加</button>
+                <input type="file" id="file-input" accept=".json" class="border border-gray-300 p-2 rounded">
+                <button id="import-button" class="bg-green-500 text-white p-2 rounded hover:bg-green-600" disabled>导入数据</button>
+                <button id="save-button" class="bg-green-500 text-white p-2 rounded hover:bg-green-600" disabled>保存数据</button>
+            </div>
+        </div>
+        <div class="text-center text-gray-500 mt-4" id="copyright" style="display: none;">
+            科技之星专用数据编辑器
+        </div>
+    </div>
+    <script>
+        const ADMIN_PASSWORD = 'kejizhixing2019'; // 管理员密码，可根据需求修改
+        let isAuthenticated = false;
+        const passwordModal = document.getElementById('password-modal');
+        const verifyButton = document.getElementById('verify-button');
+        const passwordInput = document.getElementById('admin-password');
+        const mainContainer = document.getElementById('main-container');
+        const copyright = document.getElementById('copyright');
+        const addButton = document.getElementById('add-button');
+        const saveButton = document.getElementById('save-button');
+        const fileInput = document.getElementById('file-input');
+        const importButton = document.getElementById('import-button');
+
+        // 显示模态框
+        passwordModal.style.display = 'block';
+
+        verifyButton.addEventListener('click', () => {
+            const password = passwordInput.value;
+            if (password === ADMIN_PASSWORD) {
+                isAuthenticated = true;
+                passwordModal.style.display = 'none';
+                mainContainer.style.display = 'block';
+                copyright.style.display = 'block';
+                addButton.disabled = false;
+                saveButton.disabled = false;
+                importButton.disabled = false;
+                renderTable();
+            } else {
+                alert('密码错误，请重新输入。');
+                passwordInput.value = '';
+            }
+        });
+
+        let data = JSON.parse(localStorage.getItem('windowsVersions')) || [
+            {
+                "name": "Windows 11 24H2 专业版",
+                "kernel_version": "26100.2033",
+                "architecture": "x64",
+                "language": "简体中文",
+                "size": "3.92GB",
+                "release_date": "2024-10-04",
+                "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/d1dcc508-a08f-4979-9729-b0af80d4c6d0/26100.2033.241004-2336.ge_release_svc_refresh_CLIENTCONSUMER_RET_x64FRE_zh-cn.esd"
+            },
+            {
+                "name": "Windows 11 23H2 专业版",
+                "kernel_version": "22631.2861",
+                "architecture": "x64",
+                "language": "简体中文",
+                "size": "4.60GB",
+                "release_date": "2023-12-04",
+                "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/d867ac31-3ea9-4249-a867-3bd213a6ce44/22631.2861.231204-0538.23H2_NI_RELEASE_SVC_REFRESH_CLIENTCONSUMER_RET_x64FRE_zh-cn.esd"
+            },
+            {
+                "name": "Windows 11 23H2 专业版",
+                "kernel_version": "22631.2715",
+                "architecture": "x64",
+                "language": "简体中文",
+                "size": "4.53GB",
+                "release_date": "2023-11-09",
+                "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/dea733c4-c820-4600-94e9-e16429351d7b/22631.2715.231109-1527.23H2_NI_RELEASE_SVC_REFRESH_CLIENTCONSUMER_RET_x64FRE_zh-cn.esd"
+            },
+            {
+                "name": "Windows 11 22H2 专业版",
+                "kernel_version": "22621.1702",
+                "architecture": "x64",
+                "language": "简体中文",
+                "size": "3.83GB",
+                "release_date": "2023-11-09",
+                "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/69e12f53-2f77-4cf9-aeb2-8f95ee0a446b/22621.1702.230505-1222.ni_release_svc_refresh_CLIENTCONSUMER_RET_x64FRE_zh-cn.esd"
+            },
+            {
+                "name": "Windows 11 22H2 专业版",
+                "kernel_version": "22621.525",
+                "architecture": "x64",
+                "language": "简体中文",
+                "size": "3.61GB",
+                "release_date": "2022-09-25",
+                "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/9282e556-e4ce-4e75-a650-3b8dea2f060a/22621.525.220925-0207.ni_release_svc_refresh_CLIENTCONSUMER_RET_x64FRE_zh-cn.esd"
+            },
+            {
+                "name": "Windows 11 22H2 专业版",
+                "kernel_version": "22000.318",
+                "architecture": "x64",
+                "language": "简体中文",
+                "size": "3.63GB",
+                "release_date": "2021-11-04",
+                "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/e53a2dce-3faa-412f-a60a-2e9cba4c6010/22000.318.211104-1236.co_release_svc_refresh_CLIENTCONSUMER_RET_x64FRE_zh-cn.esd"
+            },
+            {
+                "name": "Windows 11 24H2 专业版",
+                "kernel_version": "26100.1742",
+                "architecture": "x64",
+                "language": "简体中文",
+                "size": "3.70GB",
+                "release_date": "2021-11-04",
+                "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/748b5cb2-e056-40a1-985b-3b5b116c6fe7/26100.1742.240909-0928.ge_release_svc_refresh_CLIENTCONSUMER_RET_x64FRE_zh-cn.esd"
+            },
+            {
+                "name": "Windows 11 24H2 专业版",
+                "kernel_version": "26100.2033",
+                "architecture": "x64",
+                "language": "简体中文",
+                "size": "3.92GB",
+                "release_date": "2021-11-04",
+                "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/d1dcc508-a08f-4979-9729-b0af80d4c6d0/26100.2033.241004-2336.ge_release_svc_refresh_CLIENTCONSUMER_RET_x64FRE_zh-cn.esd"
+            },
+            {
+                "name": "Windows 11 24H2 专业版",
+                "kernel_version": "26100.2033",
+                "architecture": "x64",
+                "language": "简体中文",
+                "size": "3.92GB",
+                "release_date": "2021-11-04",
+                "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/d1dcc508-a08f-4979-9729-b0af80d4c6d0/26100.2033.241004-2336.ge_release_svc_refresh_CLIENTCONSUMER_RET_x64FRE_zh-cn.esd"
+            },
+            {
+                "name": "Windows 10 22H2 专业版",
+                "kernel_version": "19045.3803",
+                "architecture": "x64",
+                "language": "简体中文",
+                "size": "3.90GB",
+                "release_date": "2023-12-04",
+                "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/04dcfb20-5583-43e7-8be1-30501b0a1c6e/19045.3803.231204-0204.22h2_release_svc_refresh_CLIENTCONSUMER_RET_x64FRE_zh-cn.esd"
+            },
+            {
+                "name": "Windows 10 22H2 专业版",
+                "kernel_version": "19045.2965",
+                "architecture": "x64",
+                "language": "简体中文",
+                "size": "3.80GB",
+                "release_date": "2023-05-05",
+                "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/04dcfb20-5583-43e7-8be1-30501b0a1c6e/19045.3803.231204-0204.22h2_release_svc_refresh_CLIENTCONSUMER_RET_x64FRE_zh-cn.esd"
+            },
+            {
+                "name": "Windows 10 22H2 专业版",
+                "kernel_version": "19045.2006",
+                "architecture": "x64",
+                "language": "简体中文",
+                "size": "3.81GB",
+                "release_date": "2022-09-08",
+                "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/5fdb4d51-62f0-41bb-9487-d80b18bc11f7/19045.2006.220908-0225.22h2_release_svc_refresh_CLIENTCONSUMER_RET_x64FRE_zh-cn.esd"
+            },
+            {
+                "name": "Windows 10 21H2 专业版",
+                "kernel_version": "19044.1288",
+                "architecture": "x64",
+                "language": "简体中文",
+                "size": "3.65GB",
+                "release_date": "2021-10-06",
+                "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/e7aa8b81-ee80-4b52-8f04-c364f0ce1af1/19044.1288.211006-0501.21h2_release_svc_refresh_CLIENTCONSUMER_RET_x64FRE_zh-cn.esd"
+            },
+            {
+                "name": "Windows 10 20H2 专业版",
+                "kernel_version": "19042.631",
+                "architecture": "x64",
+                "language": "简体中文",
+                "size": "3.91GB",
+                "release_date": "2020-11-19",
+                "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/31f820d4-3cb4-4f85-add9-c36dcee2759f/19042.631.201119-0144.20h2_release_svc_refresh_CLIENTCONSUMER_RET_x64FRE_zh-cn.esd"
+            },
+            {
+                "name": "Windows 10 20H1 专业版",
+                "kernel_version": "19041.508",
+                "architecture": "x64",
+                "language": "简体中文",
+                "size": "3.36GB",
+                "release_date": "2020-09-07",
+                "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/5f1a3f35-a4a9-4fa8-8699-32234b927160/19041.508.200907-0256.vb_release_svc_refresh_CLIENTCONSUMER_RET_x64FRE_zh-cn.esd"
+            },
+            {
+                "name": "Windows 10 19H2 专业版",
+                "kernel_version": "18363.592",
+                "architecture": "x64",
+                "language": "简体中文",
+                "size": "3.36GB",
+                "release_date": "2020-01-09",
+                "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/3f88ad25-f1b2-49fa-b580-fb8d1ac54ecb/18363.592.200109-2016.19h2_release_svc_refresh_CLIENTCONSUMER_RET_x64FRE_zh-cn.esd"
+            },
+            {
+                "name": "Windows 10 19H1 专业版",
+                "kernel_version": "18362.356",
+                "architecture": "x64",
+                "language": "简体中文",
+                "size": "3.31GB",
+                "release_date": "2019-09-09",
+                "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/a58029a0-5c31-4f08-84c5-ab4bfb5ff80f/18362.356.190909-1636.19h1_release_svc_refresh_CLIENTCONSUMER_RET_x64FRE_zh-cn.esd"
+            },
+            {
+                "name": "Windows 10 1809 专业版",
+                "kernel_version": "17763.379",
+                "architecture": "x64",
+                "language": "简体中文",
+                "size": "3.40GB",
+                "release_date": "2019-03-12",
+                "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/dbd14770-9bf7-4c72-9f15-2d0c88cbb4b3/17763.379.190312-0539.rs5_release_svc_refresh_CLIENTCONSUMER_RET_x64FRE_zh-cn.esd"
+            }
+        ];
+
+        const dataTable = document.getElementById('data-table');
+        let draggedIndex;
+
+        function renderTable() {
+            dataTable.innerHTML = '';
+            data.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.draggable = isAuthenticated;
+                row.addEventListener('dragstart', () => {
+                    if (isAuthenticated) {
+                        draggedIndex = index;
+                    }
+                });
+                row.addEventListener('dragover', (e) => {
+                    if (isAuthenticated) {
+                        e.preventDefault();
+                    }
+                });
+                row.addEventListener('drop', () => {
+                    if (isAuthenticated) {
+                        const targetIndex = Array.from(dataTable.children).indexOf(row);
+                        if (draggedIndex!== targetIndex) {
+                            const [draggedItem] = data.splice(draggedIndex, 1);
+                            data.splice(targetIndex, 0, draggedItem);
+                            localStorage.setItem('windowsVersions', JSON.stringify(data));
+                            renderTable();
+                        }
+                    }
+                });
+                row.innerHTML = `
+                    <td class="py-2 px-4 border-b"><input type="text" value="${item.name}" data-index="${index}" data-field="name" ${isAuthenticated? '' : 'disabled'}></td>
+                    <td class="py-2 px-4 border-b"><input type="text" value="${item.kernel_version}" data-index="${index}" data-field="kernel_version" ${isAuthenticated? '' : 'disabled'}></td>
+                    <td class="py-2 px-4 border-b"><input type="text" value="${item.architecture}" data-index="${index}" data-field="architecture" ${isAuthenticated? '' : 'disabled'}></td>
+                    <td class="py-2 px-4 border-b"><input type="text" value="${item.language}" data-index="${index}" data-field="language" ${isAuthenticated? '' : 'disabled'}></td>
+                    <td class="py-2 px-4 border-b"><input type="text" value="${item.size}" data-index="${index}" data-field="size" ${isAuthenticated? '' : 'disabled'}></td>
+                    <td class="py-2 px-4 border-b"><input type="text" value="${item.release_date}" data-index="${index}" data-field="release_date" ${isAuthenticated? '' : 'disabled'}></td>
+                    <td class="py-2 px-4 border-b"><input type="text" value="${item.download_url}" data-index="${index}" data-field="download_url" ${isAuthenticated? '' : 'disabled'}></td>
+                    <td class="py-2 px-4 border-b">
+                        <div class="action-buttons">
+                            <button class="bg-yellow-500 text-white p-1 rounded hover:bg-yellow-600" onclick="moveUp(${index})" ${isAuthenticated? '' : 'disabled'}>上移</button>
+                            <button class="bg-green-500 text-white p-1 rounded hover:bg-green-600" onclick="moveDown(${index})" ${isAuthenticated? '' : 'disabled'}>下移</button>
+                            <button class="bg-red-500 text-white p-1 rounded hover:bg-red-600" onclick="deleteRow(${index})" ${isAuthenticated? '' : 'disabled'}>删除</button>
+                        </div>
+                    </td>
+                `;
+                dataTable.appendChild(row);
+            });
+        }
+
+        function deleteRow(index) {
+            if (isAuthenticated) {
+                data.splice(index, 1);
+                localStorage.setItem('windowsVersions', JSON.stringify(data));
+                renderTable();
+            }
+        }
+
+        function moveUp(index) {
+            if (isAuthenticated && index > 0) {
+                [data[index], data[index - 1]] = [data[index - 1], data[index]];
+                localStorage.setItem('windowsVersions', JSON.stringify(data));
+                renderTable();
+            }
+        }
+
+        function moveDown(index) {
+            if (isAuthenticated && index < data.length - 1) {
+                [data[index], data[index + 1]] = [data[index + 1], data[index]];
+                localStorage.setItem('windowsVersions', JSON.stringify(data));
+                renderTable();
+            }
+        }
+
+        addButton.addEventListener('click', () => {
+            if (isAuthenticated) {
+                const newName = document.getElementById('new-name').value;
+                const newKernelVersion = document.getElementById('new-kernel-version').value;
+                const newArchitecture = document.getElementById('new-architecture').value;
+                const newLanguage = document.getElementById('new-language').value;
+                const newSize = document.getElementById('new-size').value;
+                const newReleaseDate = document.getElementById('new-release-date').value;
+                const newDownloadUrl = document.getElementById('new-download-url').value;
+
+                if (newName && newKernelVersion && newArchitecture && newLanguage && newSize && newReleaseDate && newDownloadUrl) {
+                    data.push({
+                        name: newName,
+                        kernel_version: newKernelVersion,
+                        architecture: newArchitecture,
+                        language: newLanguage,
+                        size: newSize,
+                        release_date: newReleaseDate,
+                        download_url: newDownloadUrl
+                    });
+                    localStorage.setItem('windowsVersions', JSON.stringify(data));
+                    renderTable();
+                    document.getElementById('new-name').value = '';
+                    document.getElementById('new-kernel-version').value = '';
+                    document.getElementById('new-architecture').value = '';
+                    document.getElementById('new-language').value = '';
+                    document.getElementById('new-size').value = '';
+                    document.getElementById('new-release-date').value = '';
+                    document.getElementById('new-download-url').value = '';
+                }
+            }
+        });
+
+        saveButton.addEventListener('click', () => {
+            if (isAuthenticated) {
+                const inputs = document.querySelectorAll('#data-table input');
+                inputs.forEach(input => {
+                    const index = parseInt(input.dataset.index);
+                    const field = input.dataset.field;
+                    data[index][field] = input.value;
+                });
+                localStorage.setItem('windowsVersions', JSON.stringify(data));
+                const jsonData = JSON.stringify(data, null, 2);
+                const blob = new Blob([jsonData], { type: 'application/json;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'system_data.json';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        });
+
+        dataTable.addEventListener('input', (event) => {
+            if (isAuthenticated) {
+                const input = event.target;
+                const index = parseInt(input.dataset.index);
+                const field = input.dataset.field;
+                data[index][field] = input.value;
+                localStorage.setItem('windowsVersions', JSON.stringify(data));
+            }
+        });
+
+        // 添加右键菜单功能
+        document.addEventListener('contextmenu', async function (e) {
+            e.preventDefault();
+            const menu = document.createElement('div');
+            menu.classList.add('bg-white', 'border', 'rounded', 'shadow', 'absolute', 'z-10');
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+
+            const copyOption = document.createElement('div');
+            copyOption.classList.add('p-2', 'hover:bg-gray-100');
+            copyOption.textContent = '复制';
+            copyOption.addEventListener('click', async function () {
+                const selection = window.getSelection().toString();
+                if (selection) {
+                    try {
+                        if ('clipboard' in navigator) {
+                            await navigator.clipboard.writeText(selection);
+                        } else {
+                            const textArea = document.createElement('textarea');
+                            textArea.value = selection;
+                            document.body.appendChild(textArea);
+                            textArea.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(textArea);
+                        }
+                        menu.remove();
+                    } catch (err) {
+                        console.error('复制失败: ', err);
+                    }
+                }
+            });
+            menu.appendChild(copyOption);
+
+            const pasteOption = document.createElement('div');
+            pasteOption.classList.add('p-2', 'hover:bg-gray-100');
+            pasteOption.textContent = '粘贴';
+            pasteOption.addEventListener('click', async function () {
+                const activeElement = document.activeElement;
+                if (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA') {
+                    try {
+                        if ('clipboard' in navigator) {
+                            const text = await navigator.clipboard.readText();
+                            const start = activeElement.selectionStart;
+                            const end = activeElement.selectionEnd;
+                            activeElement.setRangeText(text, start, end, 'end');
+                            activeElement.selectionStart = activeElement.selectionEnd = start + text.length;
+                        } else {
+                            console.error('浏览器不支持剪贴板 API');
+                        }
+                    } catch (err) {
+                        console.error('粘贴失败: ', err);
+                    }
+                }
+                menu.remove();
+            });
+            menu.appendChild(pasteOption);
+
+            const copyrightOption = document.createElement('div');
+            copyrightOption.classList.add('p-2', 'hover:bg-gray-100');
+            copyrightOption.textContent = '科技之星专用数据编辑器';
+            menu.appendChild(copyrightOption);
+
+            document.body.appendChild(menu);
+
+            document.addEventListener('click', function closeMenu() {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            });
+        });
+
+        importButton.addEventListener('click', () => {
+            if (isAuthenticated) {
+                const file = fileInput.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        try {
+                            const importedData = JSON.parse(e.target.result);
+                            data = data.concat(importedData);
+                            localStorage.setItem('windowsVersions', JSON.stringify(data));
+                            renderTable();
+                        } catch (error) {
+                            alert('导入数据失败，请确保文件为有效的 JSON 格式。');
+                        }
+                    };
+                    reader.readAsText(file);
+                } else {
+                    alert('请选择一个 JSON 文件。');
+                }
+            }
+        });
+    </script>
+</body>
+
 </html>
+    
