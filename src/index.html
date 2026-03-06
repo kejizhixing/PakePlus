@@ -1,32 +1,214 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <link rel="stylesheet" href="styles.css" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus App</title>
-        <script type="module" src="/main.js" defer></script>
-    </head>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PE 启动菜单与 ISO 制作配置说明</title>
+    <style>
+        /* 全局禁用滚动、选中、鼠标拖拽 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            overflow: hidden !important; /* 强制禁用滚动 */
+            user-select: none; /* 禁止选中文字 */
+            -webkit-user-select: none;
+        }
 
-    <body>
-        <main class="container">
-            <h1>Welcome to PakePlus</h1>
-            <form class="row" id="greet-form">
-                <input id="inputValue" placeholder="Enter a something..." />
-            </form>
-            <div class="resultBox">
-                <span>result: </span>
-                <span id="result"></span>
+        /* 16:9宽屏容器，铺满可视区域 */
+        body {
+            background-color: #f5f7fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
+            /* 强制16:9比例，超出部分裁剪 */
+            aspect-ratio: 16/9;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            padding: 2vw 3vw;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around; /* 内容均匀分布 */
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            font-size: 2.5vw;
+            margin: 0;
+            padding-bottom: 1vw;
+            border-bottom: 2px solid #3498db;
+        }
+
+        h2 {
+            color: #3498db;
+            font-size: 1.8vw;
+            margin: 1vw 0 0.5vw;
+        }
+
+        h3 {
+            font-size: 1.5vw;
+            margin: 0.5vw 0;
+            color: #333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0.5vw 0;
+            font-size: 1.2vw;
+        }
+
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 0.8vw 1.2vw;
+            text-align: left;
+        }
+
+        table th {
+            background-color: #e8f4fd;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .note {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1vw 1.5vw;
+            border-radius: 4px;
+            font-size: 1.2vw;
+        }
+
+        .path {
+            color: #e74c3c;
+            font-family: "Consolas", monospace;
+            font-weight: 600;
+        }
+
+        p {
+            font-size: 1.2vw;
+            margin: 0.5vw 0;
+        }
+
+        /* 强制禁用鼠标滚动事件 */
+        body::-webkit-scrollbar {
+            display: none !important;
+        }
+        body {
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+        }
+    </style>
+</head>
+<body onwheel="return false;" onscroll="return false;">
+    <div class="container">
+        <h1>PE 启动菜单与 ISO 制作配置说明</h1>
+
+        <div style="display: flex; gap: 2vw; flex: 1;">
+            <div style="flex: 1;">
+                <h2>一、启动菜单路径</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>启动模式</th>
+                            <th>菜单文件路径</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Legacy 启动</td>
+                            <td class="path">efi\bcd（彩色菜单）</td>
+                        </tr>
+                        <tr>
+                            <td>UEFI 启动（x64）</td>
+                            <td class="path">efi\microsoft\boot\bcd</td>
+                        </tr>
+                        <tr>
+                            <td>UEFI 启动（x86）</td>
+                            <td class="path">efi\microsoft\boot\b32</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-            <div class="invokeBox">
-                <button id="openUrl">open_url_browser</button>
-                <button id="openUrlNew">open_url_new</button>
-                <button id="runCommand">run_command</button>
-                <button id="downloadFile">download_file</button>
-                <button id="getExeDir">get_exe_dir</button>
-                <button id="getEnvVar">get_env_var</button>
-                <button id="findPort">find_port</button>
+
+            <div style="flex: 1;">
+                <h2>二、文件替换步骤</h2>
+                <h3>1. 03PE 文件替换</h3>
+                <p>覆盖路径：<span class="path">efi\03PE.iso</span></p>
+
+                <h3>2. PE 内核 WIM 替换</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>PE 版本</th>
+                            <th>替换路径</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>8PEx86</td>
+                            <td class="path">efi\8PEx86.wim</td>
+                        </tr>
+                        <tr>
+                            <td>10PEx86</td>
+                            <td class="path">efi\10PEx86.wim</td>
+                        </tr>
+                        <tr>
+                            <td>10PEx64</td>
+                            <td class="path">efi\10PE.wim</td>
+                        </tr>
+                        <tr>
+                            <td>11PEx64</td>
+                            <td class="path">efi\11PE.wim</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-        </main>
-    </body>
+        </div>
+
+        <div class="note">
+            <h3>特别说明：</h3>
+            <p>1、<span class="path">diy\EFI</span> 文件夹内 “wim” 内核需替换真实内核（模板无完整内核）；</p>
+            <p>2、替换需在<strong>生成最终 ISO 前</strong>完成，否则修改无效；</p>
+            <p>3、文件名/路径需完全一致，避免启动异常。</p>
+        </div>
+    </div>
+
+    <script>
+        // 彻底禁用所有滚动相关事件
+        document.addEventListener('scroll', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }, { passive: false });
+
+        document.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }, { passive: false });
+
+        document.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }, { passive: false });
+
+        // 强制页面始终在顶部，禁止滚动偏移
+        window.scrollTo(0, 0);
+    </script>
+</body>
 </html>
