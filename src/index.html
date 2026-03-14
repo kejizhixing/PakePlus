@@ -1,32 +1,704 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <link rel="stylesheet" href="styles.css" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus App</title>
-        <script type="module" src="/main.js" defer></script>
-    </head>
+<html lang="zh-CN">
 
-    <body>
-        <main class="container">
-            <h1>Welcome to PakePlus</h1>
-            <form class="row" id="greet-form">
-                <input id="inputValue" placeholder="Enter a something..." />
-            </form>
-            <div class="resultBox">
-                <span>result: </span>
-                <span id="result"></span>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <title>系统数据编辑器</title>
+    <style>
+        input[type="text"],
+        input[type="password"],
+        select,
+        textarea,
+        input[type="date"] {
+            transition: border-color 0.3s ease;
+            padding-top: 0.05rem;
+            padding-bottom: 0.05rem;
+        }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus,
+        select:focus,
+        textarea:focus,
+        input[type="date"]:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+        }
+
+        button {
+            transition: background-color 0.3s ease;
+            padding-top: 0.05rem;
+            padding-bottom: 0.05rem;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        table td,
+        table th {
+            padding: 0.05rem 0.5rem;
+        }
+
+        .container {
+            width: auto;
+            max-width: 95%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        table {
+            width: 100%;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 400px;
+            border-radius: 8px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .tab-button {
+            padding: 8px 16px;
+            margin: 0 4px;
+            border-radius: 4px 4px 0 0;
+            background-color: #e5e7eb;
+            border: none;
+            cursor: pointer;
+        }
+
+        .tab-button.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .type-windows { background-color: #dbeafe; color: #1e40af; }
+        .type-driver { background-color: #dcfce7; color: #166534; }
+        .type-maintenance { background-color: #fef3c7; color: #92400e; }
+        .type-software { background-color: #ddd6fe; color: #5b21b6; }
+
+        .top-actions {
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 100;
+            padding: 1rem;
+            border-bottom: 2px solid #e5e7eb;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 font-sans flex flex-col items-center justify-center min-h-screen">
+
+    <div class="container p-8 bg-white rounded-lg shadow-md mx-auto" id="main-container" style="display: none;">
+        <h1 class="text-3xl font-bold mb-4 text-center">系统数据编辑器</h1>
+        
+        <!-- 操作按钮置顶 -->
+        <div class="top-actions">
+            <div class="flex flex-wrap justify-center gap-2 mb-4">
+                <button onclick="openAddModal()" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600" id="add-btn" disabled>
+                    <i class="fas fa-plus mr-1"></i>添加数据
+                </button>
+                <input type="file" id="file-input" accept=".json" class="border border-gray-300 p-2 rounded">
+                <button onclick="importData()" class="bg-green-500 text-white p-2 rounded hover:bg-green-600" id="import-btn" disabled>
+                    <i class="fas fa-file-import mr-1"></i>导入JSON
+                </button>
+                <button onclick="exportData()" class="bg-green-500 text-white p-2 rounded hover:bg-green-600" id="export-btn" disabled>
+                    <i class="fas fa-file-export mr-1"></i>导出JSON
+                </button>
+                <button onclick="clearData()" class="bg-red-500 text-white p-2 rounded hover:bg-red-600" id="clear-btn" disabled>
+                    <i class="fas fa-trash mr-1"></i>清空数据
+                </button>
             </div>
-            <div class="invokeBox">
-                <button id="openUrl">open_url_browser</button>
-                <button id="openUrlNew">open_url_new</button>
-                <button id="runCommand">run_command</button>
-                <button id="downloadFile">download_file</button>
-                <button id="getExeDir">get_exe_dir</button>
-                <button id="getEnvVar">get_env_var</button>
-                <button id="findPort">find_port</button>
+
+            <!-- 类型筛选标签和搜索功能 -->
+            <div class="flex justify-center items-center gap-4 mb-4 flex-wrap">
+                <div class="flex gap-1">
+                    <button class="tab-button active" onclick="filterData('all')">全部</button>
+                    <button class="tab-button" onclick="filterData('windows')">Windows系统</button>
+                    <button class="tab-button" onclick="filterData('driver')">驱动工具</button>
+                    <button class="tab-button" onclick="filterData('maintenance')">维护工具</button>
+                    <button class="tab-button" onclick="filterData('software')">应用软件</button>
+                </div>
+                <div class="flex items-center">
+                    <input type="text" id="search-input" placeholder="搜索数据..." class="border border-gray-300 p-2 rounded w-48">
+                    <button onclick="searchData()" class="bg-blue-500 text-white p-2 rounded ml-1 hover:bg-blue-600">搜索</button>
+                    <button onclick="clearSearch()" class="bg-gray-500 text-white p-2 rounded ml-1 hover:bg-gray-600">清空</button>
+                </div>
             </div>
-        </main>
-    </body>
+        </div>
+
+        <!-- 数据表格 -->
+        <div class="overflow-x-auto">
+            <table class="bg-white border border-gray-300 mx-auto">
+                <thead>
+                    <tr id="table-header">
+                        <!-- 动态生成表头 -->
+                    </tr>
+                </thead>
+                <tbody id="data-table">
+                    <!-- 数据将通过 JavaScript 动态插入 -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="text-center text-gray-500 mt-4" id="copyright" style="display: none;">
+            科技之星专用数据编辑器
+        </div>
+    </div>
+
+    <!-- 添加数据模态框 -->
+    <div id="add-modal" class="modal">
+        <div class="modal-content" style="width: 600px; max-height: 80vh; overflow-y: auto;">
+            <span class="close" onclick="closeAddModal()">&times;</span>
+            <h2 class="text-xl font-bold mb-4 text-center">添加新数据</h2>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">数据类型</label>
+                <select id="new-type" class="border border-gray-300 p-2 rounded w-full" onchange="updateAddForm()">
+                    <option value="windows">Windows系统</option>
+                    <option value="driver">驱动工具</option>
+                    <option value="maintenance">维护工具</option>
+                    <option value="software">应用软件</option>
+                </select>
+            </div>
+
+            <!-- Windows系统表单 -->
+            <div id="windows-form" class="add-form">
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">名称 *</label>
+                    <input type="text" id="win-name" placeholder="名称" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">内核版本</label>
+                    <input type="text" id="win-kernel" placeholder="内核版本" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">架构</label>
+                    <select id="win-arch" class="border border-gray-300 p-2 rounded w-full">
+                        <option value="x64">x64</option>
+                        <option value="x86">x86</option>
+                        <option value="ARM64">ARM64</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">语言</label>
+                    <select id="win-lang" class="border border-gray-300 p-2 rounded w-full">
+                        <option value="简体中文">简体中文</option>
+                        <option value="繁体中文">繁体中文</option>
+                        <option value="英文">英文</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">大小</label>
+                    <input type="text" id="win-size" placeholder="大小" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">发布日期</label>
+                    <input type="date" id="win-date" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">下载链接 *</label>
+                    <input type="text" id="win-url" placeholder="下载链接" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+            </div>
+
+            <!-- 驱动工具表单 -->
+            <div id="driver-form" class="add-form" style="display: none;">
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">名称 *</label>
+                    <input type="text" id="drv-name" placeholder="名称" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">制造商</label>
+                    <input type="text" id="drv-manufacturer" placeholder="制造商" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">型号</label>
+                    <input type="text" id="drv-model" placeholder="型号" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">版本</label>
+                    <input type="text" id="drv-version" placeholder="版本" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">兼容系统</label>
+                    <input type="text" id="drv-os" placeholder="兼容系统 (用逗号分隔)" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">大小</label>
+                    <input type="text" id="drv-size" placeholder="大小" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">发布日期</label>
+                    <input type="date" id="drv-date" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">下载链接 *</label>
+                    <input type="text" id="drv-url" placeholder="下载链接" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+            </div>
+
+            <!-- 维护工具表单 -->
+            <div id="maintenance-form" class="add-form" style="display: none;">
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">名称 *</label>
+                    <input type="text" id="mnt-name" placeholder="名称" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">作者/制造商</label>
+                    <input type="text" id="mnt-author" placeholder="作者/制造商" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">功能描述</label>
+                    <textarea id="mnt-desc" placeholder="功能描述" class="border border-gray-300 p-2 rounded w-full" rows="3"></textarea>
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">版本</label>
+                    <input type="text" id="mnt-version" placeholder="版本" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">兼容系统</label>
+                    <input type="text" id="mnt-os" placeholder="兼容系统 (用逗号分隔)" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">大小</label>
+                    <input type="text" id="mnt-size" placeholder="大小" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">发布日期</label>
+                    <input type="date" id="mnt-date" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">下载链接 *</label>
+                    <input type="text" id="mnt-url" placeholder="下载链接" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+            </div>
+
+            <!-- 应用软件表单 -->
+            <div id="software-form" class="add-form" style="display: none;">
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">名称 *</label>
+                    <input type="text" id="sw-name" placeholder="名称" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">作者/制造商</label>
+                    <input type="text" id="sw-author" placeholder="作者/制造商" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">功能描述</label>
+                    <textarea id="sw-desc" placeholder="功能描述" class="border border-gray-300 p-2 rounded w-full" rows="3"></textarea>
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">版本</label>
+                    <input type="text" id="sw-version" placeholder="版本" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">兼容系统</label>
+                    <input type="text" id="sw-os" placeholder="兼容系统 (用逗号分隔)" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">大小</label>
+                    <input type="text" id="sw-size" placeholder="大小" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">发布日期</label>
+                    <input type="date" id="sw-date" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm font-medium mb-1">下载链接 *</label>
+                    <input type="text" id="sw-url" placeholder="下载链接" class="border border-gray-300 p-2 rounded w-full">
+                </div>
+            </div>
+
+            <button onclick="addNewItem()" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600 w-full mt-4">添加</button>
+        </div>
+    </div>
+
+    <script>
+        let isAuthenticated = true;
+        let data = [];
+        let currentFilter = 'all';
+        let searchKeyword = '';
+
+        // 表头配置
+        const headersConfig = {
+            windows: ['名称', '内核版本', '架构', '语言', '大小', '发布日期', '下载链接', '操作'],
+            driver: ['名称', '制造商', '型号', '版本', '兼容系统', '大小', '发布日期', '下载链接', '操作'],
+            maintenance: ['名称', '作者', '版本', '兼容系统', '大小', '发布日期', '下载链接', '描述', '操作'],
+            software: ['名称', '作者', '版本', '兼容系统', '大小', '发布日期', '下载链接', '描述', '操作']
+        };
+
+        // 初始化 - 页面加载时自动显示主界面
+        window.onload = function() {
+            document.getElementById('main-container').style.display = 'block';
+            document.getElementById('copyright').style.display = 'block';
+            document.getElementById('add-btn').disabled = false;
+            document.getElementById('import-btn').disabled = false;
+            document.getElementById('export-btn').disabled = false;
+            document.getElementById('clear-btn').disabled = false;
+            
+            // 尝试从localStorage加载数据
+            const savedData = localStorage.getItem('systemData');
+            if (savedData) {
+                data = JSON.parse(savedData);
+            }
+            renderTable();
+        };
+
+        function getItemType(item) {
+            if (item.type === 'driver') return 'driver';
+            if (item.type === 'maintenance' || item.type === 'usb' || item.type === 'usb_tool') return 'maintenance';
+            if (item.type === 'software') return 'software';
+            return 'windows';
+        }
+
+        function filterData(type) {
+            currentFilter = type;
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderTable();
+        }
+
+        function renderTable() {
+            const tableHeader = document.getElementById('table-header');
+            const dataTable = document.getElementById('data-table');
+            
+            // 根据当前筛选确定表头
+            let headerType = 'windows';
+            if (currentFilter === 'driver') headerType = 'driver';
+            else if (currentFilter === 'maintenance') headerType = 'maintenance';
+            
+            // 生成表头
+            tableHeader.innerHTML = headersConfig[headerType].map(h => 
+                `<th class="py-2 px-4 border-b bg-gray-100">${h}</th>`
+            ).join('');
+
+            dataTable.innerHTML = '';
+
+            // 先按类型筛选
+            let filteredData = currentFilter === 'all' 
+                ? data 
+                : data.filter(item => getItemType(item) === currentFilter);
+
+            // 再按搜索关键词筛选
+            if (searchKeyword) {
+                filteredData = filteredData.filter(item => {
+                    const searchText = searchKeyword.toLowerCase();
+                    return (
+                        item.name?.toLowerCase().includes(searchText) ||
+                        item.manufacturer?.toLowerCase().includes(searchText) ||
+                        item.model?.toLowerCase().includes(searchText) ||
+                        item.version?.toLowerCase().includes(searchText) ||
+                        item.description?.toLowerCase().includes(searchText) ||
+                        item.download_url?.toLowerCase().includes(searchText)
+                    );
+                });
+            }
+
+            filteredData.forEach((item, index) => {
+                const actualIndex = data.indexOf(item);
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                
+                const type = getItemType(item);
+                let cells = '';
+
+                if (type === 'windows') {
+                    cells = `
+                        <td class="py-2 px-4 border-b"><input type="text" value="${item.name || ''}" onchange="updateField(${actualIndex}, 'name', this.value)" class="w-full border rounded px-1" ${!isAuthenticated ? 'disabled' : ''}></td>
+                        <td class="py-2 px-4 border-b"><input type="text" value="${item.kernel_version || ''}" onchange="updateField(${actualIndex}, 'kernel_version', this.value)" class="w-full border rounded px-1" ${!isAuthenticated ? 'disabled' : ''}></td>
+                        <td class="py-2 px-4 border-b"><input type="text" value="${item.architecture || ''}" onchange="updateField(${actualIndex}, 'architecture', this.value)" class="w-full border rounded px-1" ${!isAuthenticated ? 'disabled' : ''}></td>
+                        <td class="py-2 px-4 border-b"><input type="text" value="${item.language || ''}" onchange="updateField(${actualIndex}, 'language', this.value)" class="w-full border rounded px-1" ${!isAuthenticated ? 'disabled' : ''}></td>
+                        <td class="py-2 px-4 border-b"><input type="text" value="${item.size || ''}" onchange="updateField(${actualIndex}, 'size', this.value)" class="w-full border rounded px-1" ${!isAuthenticated ? 'disabled' : ''}></td>
+                        <td class="py-2 px-4 border-b"><input type="text" value="${item.release_date || ''}" onchange="updateField(${actualIndex}, 'release_date', this.value)" class="w-full border rounded px-1" ${!isAuthenticated ? 'disabled' : ''}></td>
+                        <td class="py-2 px-4 border-b"><input type="text" value="${item.download_url || ''}" onchange="updateField(${actualIndex}, 'download_url', this.value)" class="w-full border rounded px-1" ${!isAuthenticated ? 'disabled' : ''}></td>
+                    `;
+                } else if (type === 'driver') {
+                    const compatibleOs = Array.isArray(item.compatible_os) ? item.compatible_os.join(', ') : (item.compatible_os || '');
+                    cells = `
+                        <td class="py-2 px-4 border-b"><input type="text" value="${item.name || ''}" onchange="updateField(${actualIndex}, 'name', this.value)" class="w-full border rounded px-1" ${!isAuthenticated ? 'disabled' : ''}></td>
+                        <td class="py-2 px-4 border-b"><input type="text" value="${item.manufacturer || ''}" onchange="updateField(${actualIndex}, 'manufacturer', this.value)" class="w-full border rounded px-1" ${!isAuthenticated ? 'disabled' : ''}></td>
+                        <td class="py-2 px-4 border-b"><input type="text" value="${item.model || ''}" onchange="updateField(${actualIndex}, 'model', this.value)" class="w-full border rounded px-1" ${!isAuthenticated ? 'disabled' : ''}></td>
+                        <td class="py-2 px-4 border-b"><input type="text" value="${item.version || ''}" onchange="updateField(${actualIndex}, 'version', this.value)" class="w-full border rounded px-1" ${!isAuthenticated ? 'disabled' : ''}></td>
+                        <td class="py-2 px-4 border-b"><input type="text" value="${compatibleOs}" onchange="updateField(${actualIndex}, 'compatible_os', this.value.split(',').map(s => s.trim()))" class="w-full border rounded px-1" ${!isAuthenticated ? 'disabled' : ''}></td>
+                        <td class="py-2 px-4 border-b"><input type="text" value="${item.size || ''}" onchange="updateField(${actualIndex}, 'size', this.value)" class="w-full border rounded px-1" ${!isAuthenticated ? 'disabled' : ''}></td>
+                        <td class="py-2 px-4 border-b"><input type="text" value="${item.release_date || ''}" onchange="updateField(${actualIndex}, 'release_date', this.value)" class="w-full border rounded px-1" ${!isAuthenticated ? 'disabled' : ''}></td>
+                        <td class="py-2 px-4 border-b"><input type="text" value="${item.download_url || ''}" onchange="updateField(${actualIndex}, 'download_url', this.value)" class="w-full border rounded px-1" ${!isAuthenticated ? 'disabled' : ''}></td>
+                    `;
+                } else if (type === 'maintenance' || type === 'software') {
+                    const compatibleOs = Array.isArray(item.compatible_os) ? item.compatible_os.join(', ') : (item.compatible_os || '');
+                    cells = `
+                        <td class="py-2 px-4 border-b"><input type="text" value="${item.name || ''}" onchange="updateField(${actualIndex}, 'name', this.value)" class="w-full border rounded px-1" ${!isAuthenticated ? 'disabled' : ''}></td>
+                        <td class="py-2 px-4 border-b"><input type="text" value="${item.manufacturer || item.author || ''}" onchange="updateField(${actualIndex}, 'manufacturer', this.value)" class="w-full border rounded px-1" ${!isAuthenticated ? 'disabled' : ''}></td>
+                        <td class="py-2 px-4 border-b"><input type="text" value="${item.version || ''}" onchange="updateField(${actualIndex}, 'version', this.value)" class="w-full border rounded px-1" ${!isAuthenticated ? 'disabled' : ''}></td>
+                        <td class="py-2 px-4 border-b"><input type="text" value="${compatibleOs}" onchange="updateField(${actualIndex}, 'compatible_os', this.value.split(',').map(s => s.trim()))" class="w-full border rounded px-1" ${!isAuthenticated ? 'disabled' : ''}></td>
+                        <td class="py-2 px-4 border-b"><input type="text" value="${item.size || ''}" onchange="updateField(${actualIndex}, 'size', this.value)" class="w-full border rounded px-1" ${!isAuthenticated ? 'disabled' : ''}></td>
+                        <td class="py-2 px-4 border-b"><input type="text" value="${item.release_date || ''}" onchange="updateField(${actualIndex}, 'release_date', this.value)" class="w-full border rounded px-1" ${!isAuthenticated ? 'disabled' : ''}></td>
+                        <td class="py-2 px-4 border-b"><input type="text" value="${item.download_url || ''}" onchange="updateField(${actualIndex}, 'download_url', this.value)" class="w-full border rounded px-1" ${!isAuthenticated ? 'disabled' : ''}></td>
+                        <td class="py-2 px-4 border-b"><input type="text" value="${item.description || ''}" onchange="updateField(${actualIndex}, 'description', this.value)" class="w-full border rounded px-1" ${!isAuthenticated ? 'disabled' : ''}></td>
+                    `;
+                }
+
+                cells += `
+                    <td class="py-2 px-4 border-b">
+                        <div class="action-buttons">
+                            <button onclick="moveUp(${actualIndex})" class="bg-yellow-500 text-white px-2 py-1 rounded text-xs" ${!isAuthenticated ? 'disabled' : ''}>上移</button>
+                            <button onclick="moveDown(${actualIndex})" class="bg-green-500 text-white px-2 py-1 rounded text-xs" ${!isAuthenticated ? 'disabled' : ''}>下移</button>
+                            <button onclick="deleteItem(${actualIndex})" class="bg-red-500 text-white px-2 py-1 rounded text-xs" ${!isAuthenticated ? 'disabled' : ''}>删除</button>
+                        </div>
+                    </td>
+                `;
+
+                row.innerHTML = cells;
+                dataTable.appendChild(row);
+            });
+        }
+
+        function updateField(index, field, value) {
+            if (isAuthenticated) {
+                data[index][field] = value;
+                localStorage.setItem('systemData', JSON.stringify(data));
+            }
+        }
+
+        function moveUp(index) {
+            if (isAuthenticated && index > 0) {
+                [data[index], data[index - 1]] = [data[index - 1], data[index]];
+                localStorage.setItem('systemData', JSON.stringify(data));
+                renderTable();
+            }
+        }
+
+        function moveDown(index) {
+            if (isAuthenticated && index < data.length - 1) {
+                [data[index], data[index + 1]] = [data[index + 1], data[index]];
+                localStorage.setItem('systemData', JSON.stringify(data));
+                renderTable();
+            }
+        }
+
+        function deleteItem(index) {
+            if (isAuthenticated && confirm('确定要删除这条数据吗？')) {
+                data.splice(index, 1);
+                localStorage.setItem('systemData', JSON.stringify(data));
+                renderTable();
+            }
+        }
+
+        function openAddModal() {
+            if (isAuthenticated) {
+                document.getElementById('add-modal').style.display = 'block';
+                updateAddForm();
+            }
+        }
+
+        function closeAddModal() {
+            document.getElementById('add-modal').style.display = 'none';
+        }
+
+        function updateAddForm() {
+            const type = document.getElementById('new-type').value;
+            document.querySelectorAll('.add-form').forEach(form => form.style.display = 'none');
+            document.getElementById(type + '-form').style.display = 'block';
+        }
+
+        function isDuplicateItem(item) {
+            return data.some(existingItem => 
+                existingItem.type === item.type && 
+                existingItem.name === item.name && 
+                existingItem.download_url === item.download_url
+            );
+        }
+
+        function addNewItem() {
+            if (!isAuthenticated) return;
+
+            const type = document.getElementById('new-type').value;
+            let newItem = {};
+
+            if (type === 'windows') {
+                newItem = {
+                    name: document.getElementById('win-name').value,
+                    kernel_version: document.getElementById('win-kernel').value,
+                    architecture: document.getElementById('win-arch').value,
+                    language: document.getElementById('win-lang').value,
+                    size: document.getElementById('win-size').value,
+                    release_date: document.getElementById('win-date').value,
+                    download_url: document.getElementById('win-url').value
+                };
+            } else if (type === 'driver') {
+                newItem = {
+                    type: 'driver',
+                    name: document.getElementById('drv-name').value,
+                    manufacturer: document.getElementById('drv-manufacturer').value,
+                    model: document.getElementById('drv-model').value,
+                    version: document.getElementById('drv-version').value,
+                    compatible_os: document.getElementById('drv-os').value.split(',').map(s => s.trim()),
+                    size: document.getElementById('drv-size').value,
+                    release_date: document.getElementById('drv-date').value,
+                    download_url: document.getElementById('drv-url').value,
+                    kernel_version: '',
+                    architecture: '',
+                    language: '简体中文'
+                };
+            } else if (type === 'maintenance') {
+                newItem = {
+                    type: 'maintenance',
+                    name: document.getElementById('mnt-name').value,
+                    manufacturer: document.getElementById('mnt-author').value,
+                    description: document.getElementById('mnt-desc').value,
+                    version: document.getElementById('mnt-version').value,
+                    compatible_os: document.getElementById('mnt-os').value.split(',').map(s => s.trim()),
+                    size: document.getElementById('mnt-size').value,
+                    release_date: document.getElementById('mnt-date').value,
+                    download_url: document.getElementById('mnt-url').value,
+                    kernel_version: '',
+                    architecture: '',
+                    language: '简体中文'
+                };
+            } else if (type === 'software') {
+                newItem = {
+                    type: 'software',
+                    name: document.getElementById('sw-name').value,
+                    manufacturer: document.getElementById('sw-author').value,
+                    description: document.getElementById('sw-desc').value,
+                    version: document.getElementById('sw-version').value,
+                    compatible_os: document.getElementById('sw-os').value.split(',').map(s => s.trim()),
+                    size: document.getElementById('sw-size').value,
+                    release_date: document.getElementById('sw-date').value,
+                    download_url: document.getElementById('sw-url').value,
+                    kernel_version: '',
+                    architecture: '',
+                    language: '简体中文'
+                };
+            }
+
+            // 验证必填字段
+            if (!newItem.name || !newItem.download_url) {
+                alert('名称和下载链接为必填项！');
+                return;
+            }
+
+            // 验证是否重复
+            if (isDuplicateItem(newItem)) {
+                alert('该数据已存在，请勿重复添加！');
+                return;
+            }
+
+            data.push(newItem);
+            localStorage.setItem('systemData', JSON.stringify(data));
+            renderTable();
+            closeAddModal();
+
+            // 清空表单
+            document.querySelectorAll('.add-form input, .add-form textarea').forEach(input => input.value = '');
+        }
+
+        function importData() {
+            if (!isAuthenticated) return;
+
+            const fileInput = document.getElementById('file-input');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('请选择一个JSON文件');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (Array.isArray(importedData)) {
+                        const originalCount = data.length;
+                        const newItems = importedData.filter(item => !isDuplicateItem(item));
+                        
+                        data = [...data, ...newItems];
+                        localStorage.setItem('systemData', JSON.stringify(data));
+                        renderTable();
+                        
+                        alert(`导入成功！新增 ${newItems.length} 条数据（去重后）`);
+                    } else {
+                        alert('JSON格式错误：必须是数组格式');
+                    }
+                } catch (error) {
+                    alert('JSON解析失败：' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function exportData() {
+            if (!isAuthenticated) return;
+
+            const jsonStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'data' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function clearData() {
+            if (!isAuthenticated) return;
+
+            if (confirm('确定要清空所有数据吗？此操作不可恢复！')) {
+                data = [];
+                localStorage.setItem('systemData', JSON.stringify(data));
+                renderTable();
+                alert('数据已清空');
+            }
+        }
+
+        function searchData() {
+            searchKeyword = document.getElementById('search-input').value.trim();
+            renderTable();
+        }
+
+        function clearSearch() {
+            document.getElementById('search-input').value = '';
+            searchKeyword = '';
+            renderTable();
+        }
+    </script>
+</body>
 </html>
