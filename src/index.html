@@ -1,32 +1,162 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <link rel="stylesheet" href="styles.css" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus App</title>
-        <script type="module" src="/main.js" defer></script>
-    </head>
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>中国象棋 · 完美居中版</title>
+<meta name="viewport" content="width=device-width; initial-scale=1.0" />
+<link href="css/chess.css" rel="stylesheet" type="text/css">
+</head>
+<body>
 
-    <body>
-        <main class="container">
-            <h1>Welcome to PakePlus</h1>
-            <form class="row" id="greet-form">
-                <input id="inputValue" placeholder="Enter a something..." />
-            </form>
-            <div class="resultBox">
-                <span>result: </span>
-                <span id="result"></span>
-            </div>
-            <div class="invokeBox">
-                <button id="openUrl">open_url_browser</button>
-                <button id="openUrlNew">open_url_new</button>
-                <button id="runCommand">run_command</button>
-                <button id="downloadFile">download_file</button>
-                <button id="getExeDir">get_exe_dir</button>
-                <button id="getEnvVar">get_env_var</button>
-                <button id="findPort">find_port</button>
-            </div>
-        </main>
-    </body>
+<div id="chessBox" class="chess_box">
+    <canvas id="chess"></canvas>
+    
+    <!-- 左侧按钮组（垂直排列） -->
+    <div class="left-buttons">
+        <button class="side-btn" id="indexDy">人机对弈</button>
+        <button class="side-btn" id="indexQj">挑战棋局</button>
+    </div>
+    
+    <!-- 右侧按钮组（垂直排列） -->
+    <div class="right-buttons">
+        <button class="side-btn" id="restartBtn">重新开始</button>
+        <button class="side-btn" id="regretBtn">悔棋</button>
+    </div>
+    
+    <!-- 音频元素 -->
+    <audio src="audio/click.wav" id="clickAudio" preload="auto"></audio>
+    <audio src="audio/select.wav" id="selectAudio" preload="auto"></audio>
+</div>
+
+<!-- 弹出菜单 - 人机对弈选项 -->
+<div id="dyPopup" class="popup-menu">
+    <div class="close-btn" id="closeDy"></div>
+    <div class="menu-info">
+        <label><input name="depth" type="radio" value="2"> 菜鸟水平</label>
+        <label><input name="depth" type="radio" value="3" checked> 中级水平</label>
+        <label><input name="depth" type="radio" value="4"> 高手水平</label>
+    </div>
+    <div class="menu-btn" id="playBtn">开始对弈</div>
+</div>
+
+<!-- 弹出菜单 - 挑战棋局选项 -->
+<div id="qjPopup" class="popup-menu">
+    <div class="close-btn" id="closeQj"></div>
+    <div class="menu-info">
+        <label><input name="clasli" type="radio" value="0" checked> 八卦阵法</label>
+        <label><input name="clasli" type="radio" value="1"> 很二棋局</label>
+        <label><input name="clasli" type="radio" value="2"> 七星会阵</label>
+    </div>
+    <div class="menu-btn" id="clasliBtn">开始挑战</div>
+</div>
+
+<script type="text/javascript" src="js/common.js"></script>
+<script type="text/javascript" src="js/play.js"></script>
+<script type="text/javascript" src="js/AI.js"></script>
+<script type="text/javascript" src="js/gambit.js"></script>
+<script type="text/javascript" src="js/clasli.js"></script>
+<script>
+// 确保所有按钮正常工作
+(function() {
+    // 等待所有脚本加载完成
+    window.addEventListener('load', function() {
+        console.log('页面加载完成，初始化按钮...');
+        
+        // 获取元素
+        var chessBox = document.getElementById('chessBox');
+        var dyPopup = document.getElementById('dyPopup');
+        var qjPopup = document.getElementById('qjPopup');
+        
+        // 默认直接开始人机对弈（中级）
+        setTimeout(function() {
+            if (typeof play !== 'undefined' && play.init) {
+                play.isPlay = true;
+                play.init(3);
+                chessBox.style.display = 'block';
+            }
+        }, 500);
+        
+        // 人机对弈按钮
+        document.getElementById('indexDy').onclick = function(e) {
+            e.stopPropagation();
+            qjPopup.style.display = 'none';
+            dyPopup.style.display = 'block';
+        };
+        
+        // 挑战棋局按钮
+        document.getElementById('indexQj').onclick = function(e) {
+            e.stopPropagation();
+            dyPopup.style.display = 'none';
+            qjPopup.style.display = 'block';
+        };
+        
+        // 关闭弹出菜单
+        document.getElementById('closeDy').onclick = function() {
+            dyPopup.style.display = 'none';
+        };
+        
+        document.getElementById('closeQj').onclick = function() {
+            qjPopup.style.display = 'none';
+        };
+        
+        // 点击空白处关闭菜单
+        window.onclick = function(e) {
+            if (!e.target.closest('.popup-menu') && 
+                !e.target.closest('#indexDy') && 
+                !e.target.closest('#indexQj')) {
+                dyPopup.style.display = 'none';
+                qjPopup.style.display = 'none';
+            }
+        };
+        
+        // 开始对弈按钮
+        document.getElementById('playBtn').onclick = function() {
+            var depth = 3;
+            var radios = document.getElementsByName('depth');
+            for (var i = 0; i < radios.length; i++) {
+                if (radios[i].checked) depth = parseInt(radios[i].value, 10);
+            }
+            if (typeof play !== 'undefined' && play.init) {
+                play.isPlay = true;
+                play.init(depth);
+                chessBox.style.display = 'block';
+                dyPopup.style.display = 'none';
+            }
+        };
+        
+        // 开始挑战按钮
+        document.getElementById('clasliBtn').onclick = function() {
+            var clasli = 0;
+            var radios = document.getElementsByName('clasli');
+            for (var i = 0; i < radios.length; i++) {
+                if (radios[i].checked) clasli = parseInt(radios[i].value, 10);
+            }
+            if (typeof play !== 'undefined' && play.init && typeof com.clasli !== 'undefined') {
+                play.isPlay = true;
+                play.init(4, com.clasli[clasli].map);
+                chessBox.style.display = 'block';
+                qjPopup.style.display = 'none';
+            }
+        };
+        
+        // 重新开始
+        document.getElementById('restartBtn').onclick = function() {
+            if (confirm('是否确定要重新开始？')) {
+                if (typeof play !== 'undefined') {
+                    play.isPlay = true;
+                    play.init(play.depth || 3, play.nowMap);
+                }
+            }
+        };
+        
+        // 悔棋
+        document.getElementById('regretBtn').onclick = function() {
+            if (typeof play !== 'undefined' && play.regret) {
+                play.regret();
+            }
+        };
+    });
+})();
+</script>
+</body>
 </html>
