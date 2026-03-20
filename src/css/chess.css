@@ -1,0 +1,193 @@
+body { 
+    font-size: 12px; 
+    line-height: 150%; 
+    text-align: center; 
+    margin: 0; 
+    padding: 0; 
+    background-position: center 0; 
+    background-repeat: no-repeat; 
+    background-attachment: fixed;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 棋盘容器 - 缩放1.5倍 */
+.chess_box {
+    display: none;  /* 默认隐藏，由JS控制显示 */
+    position: relative;
+    width: 795px;   /* 530 * 1.5 = 795px */
+    margin: 0;
+    padding: 0;
+    transform: none;
+}
+
+/* 画布 - 缩放1.5倍 */
+#chess {
+    display: block;
+    margin: 0 auto;
+    width: 795px;
+    height: auto;
+    background: transparent;
+    box-shadow: 0 0 30px rgba(0,0,0,0.6);
+    border-radius: 6px;
+}
+
+/* ===== 按钮垂直排列 - 相应调整位置和大小 ===== */
+/* 左侧按钮容器 */
+.left-buttons {
+    position: absolute;
+    left: -120px;           /* 距离增加，适应缩放 */
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;              /* 间距增大 */
+    width: 100px;            /* 按钮宽度增加 */
+}
+
+/* 右侧按钮容器 */
+.right-buttons {
+    position: absolute;
+    right: -120px;           /* 距离增加，适应缩放 */
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    width: 100px;
+}
+
+/* 通用按钮样式 - 放大1.5倍 */
+.side-btn {
+    font: normal 21px/51px "Microsoft YaHei", "Microsoft YaHei", "寰?杞???榛?", sans-serif;  /* 14*1.5=21px */
+    background: rgba(70, 53, 33, 0.95);
+    border: 3px solid #FFA433;        /* 2*1.5=3px */
+    color: #FF8A00;
+    padding: 0;
+    height: 57px;                      /* 38*1.5=57px */
+    width: 100%;
+    border-radius: 28px;               /* 19*1.5=28.5 ≈28px */
+    cursor: pointer;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.5);
+    transition: all 0.2s;
+    letter-spacing: 1.5px;
+    border: none;
+    outline: none;
+    font-weight: bold;
+    text-align: center;
+    backdrop-filter: blur(3px);
+    white-space: nowrap;
+}
+
+.side-btn:hover {
+    background: #5a4030;
+    color: #FFD700;
+    transform: scale(1.08);
+    box-shadow: 0 9px 22px rgba(0,0,0,0.6);
+    border-color: #FFD700;
+}
+
+/* 隐藏原底部按钮盒子和菜单区域 */
+.bn_box, .menu_box {
+    display: none !important;
+}
+
+/* 菜单弹出层 - 放大1.5倍 */
+.popup-menu {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 420px;            /* 280*1.5=420px */
+    background: #463521;
+    border: 3px solid #FFA433;  /* 2*1.5=3px */
+    border-radius: 12px;         /* 8*1.5=12px */
+    padding: 30px 0;             /* 20*1.5=30px */
+    z-index: 2000;
+    box-shadow: 0 8px 45px rgba(0,0,0,0.8);
+}
+
+.popup-menu .menu-info {
+    background: #2f241b;
+    color: #FFF;
+    padding: 22px;              /* 15*1.5=22.5≈22px */
+    margin: 0 30px 22px;         /* 20*1.5=30px, 15*1.5=22.5≈22px */
+    border-radius: 6px;          /* 4*1.5=6px */
+    text-align: left;
+    line-height: 200%;
+}
+
+.popup-menu .menu-info label {
+    display: block;
+    color: #FFA433;
+    cursor: pointer;
+    font-size: 21px;            /* 14*1.5=21px */
+    margin-bottom: 8px;
+}
+
+.popup-menu .menu-info input {
+    margin-right: 12px;
+    vertical-align: middle;
+    width: 18px;
+    height: 18px;
+    transform: scale(1.2);
+}
+
+.popup-menu .menu-btn {
+    width: 300px;                /* 200*1.5=300px */
+    height: 60px;                /* 40*1.5=60px */
+    background: url(../img/btn_bg.png) center 0 no-repeat;
+    background-size: 100% 120px; /* 80*1.5=120px */
+    margin: 15px auto 0;          /* 10*1.5=15px */
+    text-align: center;
+    line-height: 60px;
+    font-size: 27px;             /* 18*1.5=27px */
+    color: #FF8A00;
+    cursor: pointer;
+}
+
+.popup-menu .menu-btn:hover {
+    background: url(../img/btn_bg.png) center -60px no-repeat;  /* 40*1.5=60px */
+    color: #FFA433;
+}
+
+.popup-menu .close-btn {
+    position: absolute;
+    top: 15px;                   /* 10*1.5=15px */
+    right: 22px;                  /* 15*1.5=22.5≈22px */
+    width: 30px;                  /* 20*1.5=30px */
+    height: 30px;                 /* 20*1.5=30px */
+    background: url(../img/btn_fh.png);
+    background-size: contain;
+    cursor: pointer;
+    opacity: 0.8;
+}
+
+.popup-menu .close-btn:hover {
+    opacity: 1;
+}
+
+/* 针对小屏幕的优化 */
+@media (max-width: 1000px) {
+    .chess_box {
+        transform: scale(0.8);    /* 在较小屏幕上适当缩小 */
+    }
+    .left-buttons {
+        left: -100px;
+        width: 85px;
+    }
+    .right-buttons {
+        right: -100px;
+        width: 85px;
+    }
+    .side-btn {
+        font-size: 18px;
+        height: 48px;
+        line-height: 48px;
+    }
+}
