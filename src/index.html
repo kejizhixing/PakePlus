@@ -1,32 +1,457 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <link rel="stylesheet" href="styles.css" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus App</title>
-        <script type="module" src="/main.js" defer></script>
-    </head>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>水印助手</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-    <body>
-        <main class="container">
-            <h1>Welcome to PakePlus</h1>
-            <form class="row" id="greet-form">
-                <input id="inputValue" placeholder="Enter a something..." />
-            </form>
-            <div class="resultBox">
-                <span>result: </span>
-                <span id="result"></span>
-            </div>
-            <div class="invokeBox">
-                <button id="openUrl">open_url_browser</button>
-                <button id="openUrlNew">open_url_new</button>
-                <button id="runCommand">run_command</button>
-                <button id="downloadFile">download_file</button>
-                <button id="getExeDir">get_exe_dir</button>
-                <button id="getEnvVar">get_env_var</button>
-                <button id="findPort">find_port</button>
-            </div>
-        </main>
-    </body>
+    body {
+      background: #f5f5f7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      padding: 20px;
+      color: #1d1d1f;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 720px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* 预览区 */
+    .preview {
+      background: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.04);
+      overflow: hidden;
+      position: relative;
+      min-height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(0,0,0,0.04);
+    }
+
+    canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+      object-fit: contain;
+    }
+
+    .placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      color: #86868b;
+      font-size: 15px;
+      font-weight: 450;
+      letter-spacing: -0.2px;
+    }
+
+    .placeholder-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #f5f5f7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #86868b;
+    }
+
+    /* 控制面板 */
+    .controls {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.04);
+      border: 1px solid rgba(0,0,0,0.04);
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .upload-row {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 4px;
+    }
+
+    .upload-btn {
+      background: #1d1d1f;
+      color: white;
+      border: none;
+      padding: 12px 32px;
+      border-radius: 100px;
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: -0.2px;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .upload-btn:hover {
+      background: #000000;
+    }
+
+    #upload-input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .field label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #6e6e73;
+    }
+
+    .field input[type="text"] {
+      border: 1px solid #e5e5ea;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 15px;
+      background: #f9f9fb;
+      color: #1d1d1f;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .field input[type="text"]:focus {
+      border-color: #1d1d1f;
+      box-shadow: 0 0 0 3px rgba(0,0,0,0.05);
+      background: #fff;
+    }
+
+    .field input[type="color"] {
+      -webkit-appearance: none;
+      border: 1px solid #e5e5ea;
+      border-radius: 12px;
+      width: 100%;
+      height: 42px;
+      padding: 4px;
+      background: #f9f9fb;
+      cursor: pointer;
+    }
+
+    .range-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      flex: 1;
+      height: 4px;
+      background: #e5e5ea;
+      border-radius: 10px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      background: #1d1d1f;
+      border-radius: 50%;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      transition: transform 0.15s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.1);
+    }
+
+    .range-value {
+      min-width: 36px;
+      text-align: right;
+      font-size: 13px;
+      font-weight: 500;
+      color: #6e6e73;
+    }
+
+    .download-btn {
+      align-self: flex-end;
+      background: transparent;
+      border: 1.5px solid #1d1d1f;
+      color: #1d1d1f;
+      font-weight: 500;
+      font-size: 15px;
+      padding: 12px 28px;
+      border-radius: 100px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+      letter-spacing: -0.2px;
+    }
+
+    .download-btn:hover {
+      background: #1d1d1f;
+      color: white;
+    }
+
+    .download-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    @media (max-width: 500px) {
+      .controls {
+        padding: 20px;
+      }
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <!-- 预览区 -->
+  <div class="preview" id="previewContainer">
+    <canvas id="canvas"></canvas>
+    <div class="placeholder" id="placeholder">
+      <div class="placeholder-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="3" width="18" height="18" rx="3" />
+          <circle cx="8.5" cy="8.5" r="1.5" />
+          <path d="M21 15l-5-5L5 21" />
+        </svg>
+      </div>
+      <span>选择图片开始添加水印</span>
+    </div>
+  </div>
+
+  <!-- 控制面板 -->
+  <div class="controls">
+    <div class="upload-row">
+      <label class="upload-btn" for="upload-input">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        选择图片
+      </label>
+      <input id="upload-input" type="file" accept="image/*">
+    </div>
+
+    <div class="grid">
+      <div class="field">
+        <label>水印文字</label>
+        <input id="content" type="text" value="仅供XX实名认证使用" placeholder="输入水印文字">
+      </div>
+      <div class="field">
+        <label>颜色</label>
+        <input id="color" type="color" value="#ffffff">
+      </div>
+      <div class="field">
+        <label>不透明度</label>
+        <div class="range-group">
+          <input id="alpha" type="range" value="50" max="100" min="10">
+          <span class="range-value" id="alphaVal">50%</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>文字大小</label>
+        <div class="range-group">
+          <input id="size" type="range" value="5" max="10" min="3">
+          <span class="range-value" id="sizeVal">5%</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>间隔密度</label>
+        <div class="range-group">
+          <input id="gap" type="range" value="150" max="300" min="20">
+          <span class="range-value" id="gapVal">150%</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>字体</label>
+        <input id="font" type="text" value="sans-serif" placeholder="sans-serif">
+      </div>
+    </div>
+
+    <a id="downloadLink" class="download-btn" download href="javascript:void(0)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 11l5 5 5-5M12 16V4" />
+      </svg>
+      保存图片
+    </a>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const fileInput = document.getElementById('upload-input');
+    const contentInput = document.getElementById('content');
+    const colorInput = document.getElementById('color');
+    const alphaInput = document.getElementById('alpha');
+    const sizeInput = document.getElementById('size');
+    const gapInput = document.getElementById('gap');
+    const fontInput = document.getElementById('font');
+    const downloadLink = document.getElementById('downloadLink');
+    const placeholder = document.getElementById('placeholder');
+
+    // 显示范围值
+    document.getElementById('alphaVal').textContent = alphaInput.value + '%';
+    document.getElementById('sizeVal').textContent = sizeInput.value + '%';
+    document.getElementById('gapVal').textContent = gapInput.value + '%';
+
+    let currentImage = null;
+
+    function updatePlaceholder() {
+      if (currentImage) {
+        placeholder.style.display = 'none';
+        canvas.style.display = 'block';
+      } else {
+        placeholder.style.display = 'flex';
+        canvas.style.display = 'none';
+      }
+    }
+
+    function render() {
+      if (!currentImage) {
+        updatePlaceholder();
+        return;
+      }
+      canvas.width = currentImage.width;
+      canvas.height = currentImage.height;
+      canvas.style.height = (currentImage.height / currentImage.width * 100) + '%';
+      updatePlaceholder();
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(currentImage, 0, 0);
+
+      const text = contentInput.value.trim();
+      if (!text) {
+        downloadLink.href = canvas.toDataURL('image/png');
+        downloadLink.download = 'watermark.png';
+        return;
+      }
+
+      const color = colorInput.value;
+      const alpha = parseInt(alphaInput.value, 10) / 100;
+      const sizePercent = parseFloat(sizeInput.value);
+      const gapPercent = parseFloat(gapInput.value);
+      const fontFamily = fontInput.value || 'sans-serif';
+
+      const maxDim = Math.max(canvas.width, canvas.height);
+      const fontSize = (sizePercent / 100) * maxDim;
+      const spacing = (gapPercent / 100) * fontSize;
+
+      ctx.save();
+      ctx.fillStyle = color;
+      ctx.globalAlpha = alpha;
+      ctx.font = `${fontSize}px "${fontFamily}"`;
+      ctx.textBaseline = 'middle';
+
+      const textWidth = ctx.measureText(text).width;
+      const stepX = Math.max(textWidth, fontSize) + spacing;
+      const stepY = fontSize + spacing;
+      ctx.rotate(-45 * Math.PI / 180);
+
+      const diagonal = Math.sqrt(canvas.width ** 2 + canvas.height ** 2);
+      const margin = Math.max(textWidth, fontSize) * 1.2;
+      const start = -diagonal - margin;
+      const end = diagonal + margin;
+
+      for (let y = start, row = 0; y <= end; y += stepY, row++) {
+        const offsetX = (row % 2 === 0) ? 0 : textWidth / 2;
+        for (let x = start + offsetX; x <= end; x += stepX) {
+          ctx.fillText(text, x, y);
+        }
+      }
+      ctx.restore();
+
+      downloadLink.href = canvas.toDataURL('image/png');
+      downloadLink.download = 'watermark_' + Date.now() + '.png';
+    }
+
+    function loadImage(file) {
+      if (!file || !file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          currentImage = img;
+          render();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length) {
+        loadImage(e.target.files[0]);
+      } else {
+        currentImage = null;
+        updatePlaceholder();
+      }
+    });
+
+    // 控件变化监听
+    [contentInput, colorInput, alphaInput, sizeInput, gapInput, fontInput].forEach(el => {
+      el.addEventListener('input', () => {
+        document.getElementById('alphaVal').textContent = alphaInput.value + '%';
+        document.getElementById('sizeVal').textContent = sizeInput.value + '%';
+        document.getElementById('gapVal').textContent = gapInput.value + '%';
+        render();
+      });
+      el.addEventListener('change', () => {
+        document.getElementById('alphaVal').textContent = alphaInput.value + '%';
+        document.getElementById('sizeVal').textContent = sizeInput.value + '%';
+        document.getElementById('gapVal').textContent = gapInput.value + '%';
+        render();
+      });
+    });
+
+    downloadLink.addEventListener('click', (e) => {
+      if (!currentImage || !contentInput.value.trim()) {
+        e.preventDefault();
+        alert('请先上传图片并输入水印文字');
+      }
+    });
+
+    updatePlaceholder();
+  })();
+</script>
+</body>
 </html>
