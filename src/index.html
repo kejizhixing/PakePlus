@@ -1,457 +1,778 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>水印助手</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      background: #f5f5f7;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      padding: 20px;
-      color: #1d1d1f;
-    }
-
-    .app {
-      width: 100%;
-      max-width: 720px;
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-    }
-
-    /* 预览区 */
-    .preview {
-      background: #ffffff;
-      border-radius: 20px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.04);
-      overflow: hidden;
-      position: relative;
-      min-height: 200px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid rgba(0,0,0,0.04);
-    }
-
-    canvas {
-      width: 100%;
-      height: auto;
-      display: block;
-      object-fit: contain;
-    }
-
-    .placeholder {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-      color: #86868b;
-      font-size: 15px;
-      font-weight: 450;
-      letter-spacing: -0.2px;
-    }
-
-    .placeholder-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: #f5f5f7;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #86868b;
-    }
-
-    /* 控制面板 */
-    .controls {
-      background: #ffffff;
-      border-radius: 20px;
-      padding: 28px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.04);
-      border: 1px solid rgba(0,0,0,0.04);
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-    }
-
-    .upload-row {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 4px;
-    }
-
-    .upload-btn {
-      background: #1d1d1f;
-      color: white;
-      border: none;
-      padding: 12px 32px;
-      border-radius: 100px;
-      font-size: 15px;
-      font-weight: 500;
-      letter-spacing: -0.2px;
-      cursor: pointer;
-      transition: background 0.2s;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .upload-btn:hover {
-      background: #000000;
-    }
-
-    #upload-input {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip: rect(0,0,0,0);
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
-    }
-
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .field label {
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #6e6e73;
-    }
-
-    .field input[type="text"] {
-      border: 1px solid #e5e5ea;
-      border-radius: 12px;
-      padding: 10px 14px;
-      font-size: 15px;
-      background: #f9f9fb;
-      color: #1d1d1f;
-      outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    .field input[type="text"]:focus {
-      border-color: #1d1d1f;
-      box-shadow: 0 0 0 3px rgba(0,0,0,0.05);
-      background: #fff;
-    }
-
-    .field input[type="color"] {
-      -webkit-appearance: none;
-      border: 1px solid #e5e5ea;
-      border-radius: 12px;
-      width: 100%;
-      height: 42px;
-      padding: 4px;
-      background: #f9f9fb;
-      cursor: pointer;
-    }
-
-    .range-group {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    input[type="range"] {
-      -webkit-appearance: none;
-      flex: 1;
-      height: 4px;
-      background: #e5e5ea;
-      border-radius: 10px;
-      outline: none;
-    }
-
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 20px;
-      height: 20px;
-      background: #1d1d1f;
-      border-radius: 50%;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-      transition: transform 0.15s;
-    }
-
-    input[type="range"]::-webkit-slider-thumb:hover {
-      transform: scale(1.1);
-    }
-
-    .range-value {
-      min-width: 36px;
-      text-align: right;
-      font-size: 13px;
-      font-weight: 500;
-      color: #6e6e73;
-    }
-
-    .download-btn {
-      align-self: flex-end;
-      background: transparent;
-      border: 1.5px solid #1d1d1f;
-      color: #1d1d1f;
-      font-weight: 500;
-      font-size: 15px;
-      padding: 12px 28px;
-      border-radius: 100px;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s;
-      letter-spacing: -0.2px;
-    }
-
-    .download-btn:hover {
-      background: #1d1d1f;
-      color: white;
-    }
-
-    .download-btn svg {
-      width: 18px;
-      height: 18px;
-    }
-
-    @media (max-width: 500px) {
-      .controls {
-        padding: 20px;
-      }
-      .grid {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>书签整理工坊 - 智能收藏夹管理器</title>
+    <!-- Font Awesome 6 (免费图标库，增强视觉) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', 'Inter', 'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        body {
+            background: #f0f2f5;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        /* 主容器 - 类似现代书签管理器卡片风格 */
+        .bookmark-app {
+            width: 1400px;
+            max-width: 98vw;
+            height: 90vh;
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 25px 45px -12px rgba(0,0,0,0.25);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+        /* 头部工具栏 */
+        .toolbar {
+            padding: 16px 24px;
+            background: rgba(255,255,255,0.96);
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            backdrop-filter: blur(2px);
+        }
+        .toolbar h2 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #1e3c72, #2b4c7c);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            margin-right: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 8px 14px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #2c3e50;
+        }
+        .btn-primary {
+            background: #1e466e;
+            border-color: #1e466e;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #0f3454;
+            transform: translateY(-1px);
+        }
+        .btn-outline {
+            background: white;
+            border-color: #cbd5e1;
+        }
+        .btn-outline:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+        }
+        .btn-danger {
+            background: #fff1f0;
+            border-color: #ffccc7;
+            color: #c73c2e;
+        }
+        .btn-danger:hover {
+            background: #ffe4e2;
+        }
+        /* 主体双栏布局 */
+        .main-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        /* 左侧分类栏 - 类似书签菜单风格 */
+        .sidebar {
+            width: 280px;
+            background: #fcfcfd;
+            border-right: 1px solid #edf2f7;
+            overflow-y: auto;
+            padding: 16px 8px;
+            flex-shrink: 0;
+        }
+        .category-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            margin: 2px 8px;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+            color: #334155;
+        }
+        .category-item i {
+            width: 24px;
+            color: #5b6e8c;
+        }
+        .category-item .cat-name {
+            flex: 1;
+            margin-left: 10px;
+            font-size: 0.9rem;
+        }
+        .category-item .badge {
+            background: #eef2ff;
+            padding: 2px 8px;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #1e466e;
+        }
+        .category-item.active {
+            background: #eef2ff;
+            color: #0f3b6a;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+        }
+        .category-item.active i {
+            color: #1e466e;
+        }
+        .category-item:hover:not(.active) {
+            background: #f1f5f9;
+        }
+        /* 右侧内容区 */
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #ffffff;
+        }
+        .category-header {
+            padding: 16px 24px 8px 24px;
+            border-bottom: 1px solid #edf2f7;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+        }
+        .category-title {
+            font-size: 1.5rem;
+            font-weight: 650;
+            color: #0b2b44;
+        }
+        .bookmark-stats {
+            font-size: 0.8rem;
+            color: #5c6f87;
+        }
+        .bookmark-grid {
+            padding: 20px 24px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+            align-content: start;
+        }
+        /* 书签卡片 */
+        .bookmark-card {
+            background: #ffffff;
+            border: 1px solid #e9edf2;
+            border-radius: 20px;
+            padding: 12px 16px;
+            transition: all 0.2s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .bookmark-card:hover {
+            box-shadow: 0 12px 20px -12px rgba(0,0,0,0.12);
+            border-color: #cfdfed;
+            transform: translateY(-2px);
+        }
+        .bookmark-title {
+            font-weight: 600;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #1e2f41;
+        }
+        .bookmark-title a {
+            text-decoration: none;
+            color: #1e466e;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+        }
+        .bookmark-title a:hover {
+            text-decoration: underline;
+        }
+        .bookmark-url {
+            font-size: 0.7rem;
+            color: #6c86a3;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .bookmark-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 6px;
+            align-items: center;
+        }
+        .cat-selector {
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 30px;
+            padding: 4px 10px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #1f3a5f;
+            cursor: pointer;
+            outline: none;
+        }
+        .icon-btn {
+            background: none;
+            border: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+            color: #8196b0;
+            transition: color 0.2s;
+            padding: 4px;
+        }
+        .icon-btn:hover {
+            color: #e53e3e;
+        }
+        .edit-btn:hover {
+            color: #2c7da0;
+        }
+        .add-card {
+            border: 2px dashed #cddfe7;
+            background: #fbfdfe;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            cursor: pointer;
+            color: #397fb9;
+            font-weight: 500;
+        }
+        .empty-placeholder {
+            text-align: center;
+            padding: 60px 20px;
+            color: #9aaebf;
+            font-size: 0.9rem;
+        }
+        input, .inline-input {
+            border-radius: 40px;
+            border: 1px solid #cfdfe9;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+        .modal-mask {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-card {
+            background: white;
+            border-radius: 32px;
+            width: 420px;
+            max-width: 90%;
+            padding: 24px;
+            box-shadow: 0 25px 40px rgba(0,0,0,0.2);
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            font-weight: 500;
+            display: block;
+            margin-bottom: 6px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 60px;
+            border: 1px solid #cbd5e1;
+        }
+        .flex-btns {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        i.fa, i.far, i.fas {
+            pointer-events: none;
+        }
+        .small-note {
+            font-size: 0.7rem;
+            color: #7995b0;
+            margin-top: 4px;
+        }
+        @media (max-width: 700px) {
+            .sidebar { width: 220px; }
+            .bookmark-grid { grid-template-columns: 1fr; }
+        }
+    </style>
 </head>
 <body>
-<div class="app">
-  <!-- 预览区 -->
-  <div class="preview" id="previewContainer">
-    <canvas id="canvas"></canvas>
-    <div class="placeholder" id="placeholder">
-      <div class="placeholder-icon">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <rect x="3" y="3" width="18" height="18" rx="3" />
-          <circle cx="8.5" cy="8.5" r="1.5" />
-          <path d="M21 15l-5-5L5 21" />
-        </svg>
-      </div>
-      <span>选择图片开始添加水印</span>
+<div class="bookmark-app">
+    <div class="toolbar">
+        <h2><i class="fas fa-bookmark"></i> 书签整理工坊</h2>
+        <button class="btn btn-outline" id="importBtn"><i class="fas fa-upload"></i> 导入HTML</button>
+        <button class="btn btn-outline" id="exportBtn"><i class="fas fa-download"></i> 导出书签</button>
+        <button class="btn btn-outline" id="autoSortBtn"><i class="fas fa-magic"></i> 智能整理未分类</button>
+        <button class="btn btn-outline" id="resetDemoBtn"><i class="fas fa-sync-alt"></i> 重置示例</button>
+        <button class="btn btn-primary" id="addBookmarkGlobal"><i class="fas fa-plus"></i> 添加书签</button>
     </div>
-  </div>
+    <div class="main-layout">
+        <!-- 左侧分类菜单 (与参考图一致) -->
+        <div class="sidebar" id="sidebarCategories"></div>
 
-  <!-- 控制面板 -->
-  <div class="controls">
-    <div class="upload-row">
-      <label class="upload-btn" for="upload-input">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 5v14M5 12h14" />
-        </svg>
-        选择图片
-      </label>
-      <input id="upload-input" type="file" accept="image/*">
+        <!-- 右侧区域：展示当前分类下的书签 -->
+        <div class="content-area">
+            <div class="category-header">
+                <div>
+                    <span class="category-title" id="currentCategoryTitle">全部书签</span>
+                    <span class="bookmark-stats" id="categoryStats"></span>
+                </div>
+                <div class="small-note"><i class="fas fa-tag"></i> 点击分类切换，下拉菜单快速移动书签</div>
+            </div>
+            <div class="bookmark-grid" id="bookmarkGrid"></div>
+        </div>
     </div>
-
-    <div class="grid">
-      <div class="field">
-        <label>水印文字</label>
-        <input id="content" type="text" value="仅供XX实名认证使用" placeholder="输入水印文字">
-      </div>
-      <div class="field">
-        <label>颜色</label>
-        <input id="color" type="color" value="#ffffff">
-      </div>
-      <div class="field">
-        <label>不透明度</label>
-        <div class="range-group">
-          <input id="alpha" type="range" value="50" max="100" min="10">
-          <span class="range-value" id="alphaVal">50%</span>
-        </div>
-      </div>
-      <div class="field">
-        <label>文字大小</label>
-        <div class="range-group">
-          <input id="size" type="range" value="5" max="10" min="3">
-          <span class="range-value" id="sizeVal">5%</span>
-        </div>
-      </div>
-      <div class="field">
-        <label>间隔密度</label>
-        <div class="range-group">
-          <input id="gap" type="range" value="150" max="300" min="20">
-          <span class="range-value" id="gapVal">150%</span>
-        </div>
-      </div>
-      <div class="field">
-        <label>字体</label>
-        <input id="font" type="text" value="sans-serif" placeholder="sans-serif">
-      </div>
-    </div>
-
-    <a id="downloadLink" class="download-btn" download href="javascript:void(0)">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 11l5 5 5-5M12 16V4" />
-      </svg>
-      保存图片
-    </a>
-  </div>
 </div>
 
 <script>
-  (function() {
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const fileInput = document.getElementById('upload-input');
-    const contentInput = document.getElementById('content');
-    const colorInput = document.getElementById('color');
-    const alphaInput = document.getElementById('alpha');
-    const sizeInput = document.getElementById('size');
-    const gapInput = document.getElementById('gap');
-    const fontInput = document.getElementById('font');
-    const downloadLink = document.getElementById('downloadLink');
-    const placeholder = document.getElementById('placeholder');
-
-    // 显示范围值
-    document.getElementById('alphaVal').textContent = alphaInput.value + '%';
-    document.getElementById('sizeVal').textContent = sizeInput.value + '%';
-    document.getElementById('gapVal').textContent = gapInput.value + '%';
-
-    let currentImage = null;
-
-    function updatePlaceholder() {
-      if (currentImage) {
-        placeholder.style.display = 'none';
-        canvas.style.display = 'block';
-      } else {
-        placeholder.style.display = 'flex';
-        canvas.style.display = 'none';
-      }
+    // ---------- 预设分类 (完全参照图片需求) ----------
+    const CATEGORIES = [
+        { id: "software", name: "软件下载", icon: "fa-download" },
+        { id: "social", name: "社交媒体", icon: "fa-hashtag" },
+        { id: "reading", name: "阅读资讯", icon: "fa-newspaper" },
+        { id: "cloudstorage", name: "网盘存储", icon: "fa-cloud" },
+        { id: "ai", name: "AI工具", icon: "fa-microchip" },
+        { id: "design", name: "设计创意", icon: "fa-palette" },
+        { id: "entertainment", name: "影音娱乐", icon: "fa-film" },
+        { id: "utilities", name: "实用工具", icon: "fa-toolbox" },
+        { id: "dev", name: "技术开发", icon: "fa-code" },
+        { id: "gov", name: "政府办公", icon: "fa-building" },
+        { id: "education", name: "学习教育", icon: "fa-graduation-cap" },
+        { id: "shopping", name: "购物电商", icon: "fa-cart-shopping" },
+        { id: "office", name: "办公效率", icon: "fa-file-alt" },
+        { id: "wallpaper", name: "图片壁纸", icon: "fa-image" },
+        { id: "other", name: "其他", icon: "fa-ellipsis-h" }
+    ];
+    const UNCATEGORIZED_ID = "uncategorized";
+    const UNCATEGORIZED_ITEM = { id: UNCATEGORIZED_ID, name: "未分类", icon: "fa-inbox" };
+    let allCategories = [...CATEGORIES, UNCATEGORIZED_ITEM];
+    
+    // 书签数组
+    let bookmarks = [];
+    let nextId = 100;
+    let currentCategoryId = "all"; // 'all' 或具体分类id
+    
+    // 本地存储键名
+    const STORAGE_KEY = "bookmark_organizer_data";
+    
+    // ---- 辅助函数 ----
+    function saveToLocal() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            bookmarks: bookmarks,
+            nextId: nextId
+        }));
     }
-
-    function render() {
-      if (!currentImage) {
-        updatePlaceholder();
-        return;
-      }
-      canvas.width = currentImage.width;
-      canvas.height = currentImage.height;
-      canvas.style.height = (currentImage.height / currentImage.width * 100) + '%';
-      updatePlaceholder();
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(currentImage, 0, 0);
-
-      const text = contentInput.value.trim();
-      if (!text) {
-        downloadLink.href = canvas.toDataURL('image/png');
-        downloadLink.download = 'watermark.png';
-        return;
-      }
-
-      const color = colorInput.value;
-      const alpha = parseInt(alphaInput.value, 10) / 100;
-      const sizePercent = parseFloat(sizeInput.value);
-      const gapPercent = parseFloat(gapInput.value);
-      const fontFamily = fontInput.value || 'sans-serif';
-
-      const maxDim = Math.max(canvas.width, canvas.height);
-      const fontSize = (sizePercent / 100) * maxDim;
-      const spacing = (gapPercent / 100) * fontSize;
-
-      ctx.save();
-      ctx.fillStyle = color;
-      ctx.globalAlpha = alpha;
-      ctx.font = `${fontSize}px "${fontFamily}"`;
-      ctx.textBaseline = 'middle';
-
-      const textWidth = ctx.measureText(text).width;
-      const stepX = Math.max(textWidth, fontSize) + spacing;
-      const stepY = fontSize + spacing;
-      ctx.rotate(-45 * Math.PI / 180);
-
-      const diagonal = Math.sqrt(canvas.width ** 2 + canvas.height ** 2);
-      const margin = Math.max(textWidth, fontSize) * 1.2;
-      const start = -diagonal - margin;
-      const end = diagonal + margin;
-
-      for (let y = start, row = 0; y <= end; y += stepY, row++) {
-        const offsetX = (row % 2 === 0) ? 0 : textWidth / 2;
-        for (let x = start + offsetX; x <= end; x += stepX) {
-          ctx.fillText(text, x, y);
+    
+    function loadFromLocal() {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+            try {
+                const data = JSON.parse(raw);
+                bookmarks = data.bookmarks || [];
+                nextId = data.nextId || 100;
+                return true;
+            } catch(e) {}
         }
-      }
-      ctx.restore();
-
-      downloadLink.href = canvas.toDataURL('image/png');
-      downloadLink.download = 'watermark_' + Date.now() + '.png';
+        return false;
     }
-
-    function loadImage(file) {
-      if (!file || !file.type.startsWith('image/')) return;
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          currentImage = img;
-          render();
+    
+    // 初始化示例数据 (包含豆包，绿软小站等特色书签，符合参考图风格)
+    function initDemoData() {
+        bookmarks = [];
+        const demoList = [
+            { title: "豆包 - 字节跳动旗下AI助手", url: "https://www.doubao.com", categoryId: "ai", icon: "🤖" },
+            { title: "绿软小站 - 分享绿色软件", url: "https://www.xiaoli.cc", categoryId: "software", icon: "💚" },
+            { title: "GitHub · 开发者家园", url: "https://github.com", categoryId: "dev", icon: "🐙" },
+            { title: "哔哩哔哩 - 弹幕视频", url: "https://www.bilibili.com", categoryId: "entertainment", icon: "📺" },
+            { title: "百度网盘", url: "https://pan.baidu.com", categoryId: "cloudstorage", icon: "☁️" },
+            { title: "Canva 可画设计", url: "https://www.canva.cn", categoryId: "design", icon: "🎨" },
+            { title: "知乎 · 高质量问答", url: "https://www.zhihu.com", categoryId: "reading", icon: "📖" },
+            { title: "YouTube精选", url: "https://www.youtube.com", categoryId: "entertainment", icon: "🎬" },
+            { title: "阿里云盘", url: "https://www.aliyundrive.com", categoryId: "cloudstorage", icon: "📦" },
+            { title: "Tool.lu 在线工具", url: "https://tool.lu", categoryId: "utilities", icon: "🔧" },
+            { title: "微博热搜", url: "https://weibo.com", categoryId: "social", icon: "🐦" },
+            { title: "Unsplash 高清壁纸", url: "https://unsplash.com", categoryId: "wallpaper", icon: "🖼️" }
+        ];
+        demoList.forEach((item, idx) => {
+            bookmarks.push({
+                id: nextId + idx,
+                title: item.title,
+                url: item.url,
+                categoryId: item.categoryId,
+                createdAt: Date.now()
+            });
+        });
+        nextId += demoList.length;
+        // 额外加两个未分类示例，体现整理需求
+        bookmarks.push({ id: nextId++, title: "未整理的技术文章", url: "https://example.com/tech", categoryId: UNCATEGORIZED_ID, createdAt: Date.now() });
+        bookmarks.push({ id: nextId++, title: "随机购物优惠", url: "https://example.com/shop", categoryId: UNCATEGORIZED_ID, createdAt: Date.now() });
+        saveToLocal();
+    }
+    
+    // 智能归类 (只针对未分类的书签，不覆盖已手动分类)
+    function autoSortUncategorized() {
+        let changed = 0;
+        bookmarks = bookmarks.map(bookmark => {
+            if (bookmark.categoryId !== UNCATEGORIZED_ID) return bookmark;
+            const newCat = guessCategory(bookmark.title, bookmark.url);
+            if (newCat !== UNCATEGORIZED_ID) {
+                changed++;
+                return { ...bookmark, categoryId: newCat };
+            }
+            return bookmark;
+        });
+        if (changed > 0) {
+            saveToLocal();
+            renderAll();
+            showToast(`✨ 智能整理完成！已将 ${changed} 个书签自动归类。`, "#1e466e");
+        } else {
+            showToast("📭 未发现可自动归类的未分类书签", "#64748b");
+        }
+    }
+    
+    // 根据标题/URL猜测最合适的分类
+    function guessCategory(title, url) {
+        const text = (title + " " + url).toLowerCase();
+        const rules = [
+            { keywords: ["下载","软件","绿色","破解","app","安装包"], category: "software" },
+            { keywords: ["微博","微信","twitter","facebook","instagram","朋友圈","社交"], category: "social" },
+            { keywords: ["新闻","资讯","rss","头条","澎湃","日报","read"], category: "reading" },
+            { keywords: ["网盘","云盘","百度网盘","阿里云盘","115","夸克网盘"], category: "cloudstorage" },
+            { keywords: ["ai","gpt","chatgpt","豆包","文心","通义","生成式","智能","大模型"], category: "ai" },
+            { keywords: ["设计","ps","figma","创客","canva","sketch","ui"], category: "design" },
+            { keywords: ["视频","bilibili","youtube","爱奇艺","腾讯视频","芒果","影音"], category: "entertainment" },
+            { keywords: ["工具","计算器","转换","json","编码","在线工具"], category: "utilities" },
+            { keywords: ["github","gitlab","stackoverflow","开发者","代码","编程","技术"], category: "dev" },
+            { keywords: ["gov","政府","政务","社保","公共服务"], category: "gov" },
+            { keywords: ["学习","教育","慕课","学堂","coursera","edx","教程"], category: "education" },
+            { keywords: ["淘宝","京东","拼多多","购物","电商","天猫"], category: "shopping" },
+            { keywords: ["文档","office","excel","word","ppt","协作","teams"], category: "office" },
+            { keywords: ["壁纸","图片","摄影","unsplash","pixabay"], category: "wallpaper" }
+        ];
+        for (let rule of rules) {
+            if (rule.keywords.some(kw => text.includes(kw))) {
+                return rule.category;
+            }
+        }
+        return UNCATEGORIZED_ID;
+    }
+    
+    // 获取分类下的书签数量
+    function countByCategory(catId) {
+        if (catId === "all") return bookmarks.length;
+        return bookmarks.filter(b => b.categoryId === catId).length;
+    }
+    
+    // 渲染左侧分类菜单
+    function renderSidebar() {
+        const container = document.getElementById("sidebarCategories");
+        let html = `<div class="category-item ${currentCategoryId === 'all' ? 'active' : ''}" data-cat="all">
+            <i class="fas fa-layer-group"></i><span class="cat-name">全部书签</span><span class="badge">${bookmarks.length}</span>
+        </div>`;
+        allCategories.forEach(cat => {
+            const cnt = bookmarks.filter(b => b.categoryId === cat.id).length;
+            html += `<div class="category-item ${currentCategoryId === cat.id ? 'active' : ''}" data-cat="${cat.id}">
+                <i class="fas ${cat.icon}"></i><span class="cat-name">${cat.name}</span><span class="badge">${cnt}</span>
+            </div>`;
+        });
+        container.innerHTML = html;
+        // 绑定点击事件
+        document.querySelectorAll('.category-item').forEach(el => {
+            el.addEventListener('click', (e) => {
+                const catId = el.getAttribute('data-cat');
+                if (catId) {
+                    currentCategoryId = catId;
+                    renderSidebar();
+                    renderBookmarks();
+                }
+            });
+        });
+    }
+    
+    // 渲染右侧书签列表
+    function renderBookmarks() {
+        let filtered = [];
+        if (currentCategoryId === "all") {
+            filtered = [...bookmarks];
+        } else {
+            filtered = bookmarks.filter(b => b.categoryId === currentCategoryId);
+        }
+        const container = document.getElementById("bookmarkGrid");
+        const categoryName = currentCategoryId === "all" ? "全部书签" : (allCategories.find(c => c.id === currentCategoryId)?.name || "分类");
+        document.getElementById("currentCategoryTitle").innerText = categoryName;
+        document.getElementById("categoryStats").innerHTML = `共 ${filtered.length} 条书签`;
+        
+        if (filtered.length === 0) {
+            container.innerHTML = `<div class="empty-placeholder"><i class="fas fa-folder-open"></i> 暂无书签，点击上方「添加书签」或「导入HTML」开始整理 ✨</div>`;
+            return;
+        }
+        
+        let cardsHtml = "";
+        filtered.forEach(book => {
+            const catOptions = allCategories.map(cat => `<option value="${cat.id}" ${book.categoryId === cat.id ? "selected" : ""}>${cat.name}</option>`).join('');
+            // 安全显示url截取
+            let displayUrl = book.url.length > 65 ? book.url.substring(0,62)+"..." : book.url;
+            cardsHtml += `
+                <div class="bookmark-card" data-id="${book.id}">
+                    <div class="bookmark-title">
+                        <i class="fas fa-link" style="color:#5483b7;"></i>
+                        <a href="${escapeHtml(book.url)}" target="_blank" title="${escapeHtml(book.title)}">${escapeHtml(book.title)}</a>
+                    </div>
+                    <div class="bookmark-url" title="${escapeHtml(book.url)}">${escapeHtml(displayUrl)}</div>
+                    <div class="bookmark-actions">
+                        <select class="cat-selector" data-id="${book.id}">
+                            ${catOptions}
+                        </select>
+                        <button class="icon-btn edit-btn" data-id="${book.id}" data-action="edit"><i class="fas fa-pen"></i></button>
+                        <button class="icon-btn" data-id="${book.id}" data-action="delete"><i class="fas fa-trash-alt"></i></button>
+                    </div>
+                </div>
+            `;
+        });
+        // 添加快速新增卡片（快捷入口）
+        cardsHtml += `<div class="bookmark-card add-card" id="quickAddCard"><i class="fas fa-plus-circle"></i> 新增书签到此分类</div>`;
+        container.innerHTML = cardsHtml;
+        
+        // 绑定分类切换事件
+        document.querySelectorAll('.cat-selector').forEach(select => {
+            select.addEventListener('change', (e) => {
+                const id = parseInt(select.getAttribute('data-id'));
+                const newCat = select.value;
+                const idx = bookmarks.findIndex(b => b.id === id);
+                if (idx !== -1) {
+                    bookmarks[idx].categoryId = newCat;
+                    saveToLocal();
+                    renderAll();
+                    showToast(`已移动至「${allCategories.find(c=>c.id===newCat)?.name}」`, "#2b6e4e");
+                }
+                e.stopPropagation();
+            });
+        });
+        // 编辑&删除
+        document.querySelectorAll('.icon-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = parseInt(btn.getAttribute('data-id'));
+                const action = btn.getAttribute('data-action');
+                if (action === 'delete') {
+                    if (confirm("确定删除这个书签吗？")) {
+                        bookmarks = bookmarks.filter(b => b.id !== id);
+                        saveToLocal();
+                        renderAll();
+                        showToast("已删除书签", "#aa2e1e");
+                    }
+                } else if (action === 'edit') {
+                    openEditModal(id);
+                }
+                e.stopPropagation();
+            });
+        });
+        const quickCard = document.getElementById("quickAddCard");
+        if (quickCard) {
+            quickCard.addEventListener('click', () => {
+                openAddModal(currentCategoryId !== "all" ? currentCategoryId : UNCATEGORIZED_ID);
+            });
+        }
+    }
+    
+    function openEditModal(id) {
+        const bookmark = bookmarks.find(b => b.id === id);
+        if (!bookmark) return;
+        const newTitle = prompt("编辑书签名称:", bookmark.title);
+        if (newTitle !== null && newTitle.trim() !== "") {
+            const newUrl = prompt("编辑网址:", bookmark.url);
+            if (newUrl && (newUrl.startsWith('http://') || newUrl.startsWith('https://'))) {
+                bookmark.title = newTitle.trim();
+                bookmark.url = newUrl.trim();
+                saveToLocal();
+                renderAll();
+                showToast("书签已更新", "#2c7da0");
+            } else if (newUrl) { alert("请输入有效的网址 (http:// 或 https://)"); }
+        }
+    }
+    
+    function openAddModal(preferredCat) {
+        const title = prompt("书签名称:", "");
+        if (!title) return;
+        const url = prompt("网址 (包含https://):", "https://");
+        if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) {
+            alert("网址需以 http:// 或 https:// 开头");
+            return;
+        }
+        let catId = preferredCat;
+        if (!catId || catId === "all") catId = UNCATEGORIZED_ID;
+        const newId = nextId++;
+        bookmarks.push({ id: newId, title: title.trim(), url: url.trim(), categoryId: catId, createdAt: Date.now() });
+        saveToLocal();
+        renderAll();
+        showToast(`添加成功: ${title}`, "#2e7d64");
+    }
+    
+    // 导入书签HTML (标准netscape格式)
+    function importBookmarkHTML(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const htmlContent = e.target.result;
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, "text/html");
+            const links = doc.querySelectorAll("a");
+            let importedCount = 0;
+            for (let link of links) {
+                let href = link.getAttribute("href");
+                let title = link.textContent.trim() || link.getAttribute("title") || "未命名书签";
+                if (href && (href.startsWith("http://") || href.startsWith("https://") || href.startsWith("ftp"))) {
+                    const exists = bookmarks.some(b => b.url === href);
+                    if (!exists) {
+                        const newId = nextId++;
+                        let guessedCat = guessCategory(title, href);
+                        bookmarks.push({ id: newId, title: title.substring(0, 120), url: href, categoryId: guessedCat, createdAt: Date.now() });
+                        importedCount++;
+                    }
+                }
+            }
+            if (importedCount > 0) {
+                saveToLocal();
+                renderAll();
+                showToast(`成功导入 ${importedCount} 个书签，并已自动智能分类 ✨`, "#2c7a47");
+            } else {
+                showToast("没有发现新书签 (可能重复或格式特殊)", "#e67e22");
+            }
         };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
+        reader.readAsText(file, "UTF-8");
     }
-
-    fileInput.addEventListener('change', (e) => {
-      if (e.target.files.length) {
-        loadImage(e.target.files[0]);
-      } else {
-        currentImage = null;
-        updatePlaceholder();
-      }
+    
+    // 导出为标准书签 HTML (按照分类文件夹结构)
+    function exportAsBookmarksHTML() {
+        let html = `<!DOCTYPE NETSCAPE-Bookmark-file-1>
+<!-- This is an automatically generated file. -->
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
+<TITLE>Bookmarks</Title>
+<H1>Bookmarks</H1>
+<DL><p>`;
+        // 按分类分组
+        const catsWithBookmarks = allCategories.filter(cat => bookmarks.some(b => b.categoryId === cat.id));
+        for (let cat of catsWithBookmarks) {
+            const catBookmarks = bookmarks.filter(b => b.categoryId === cat.id);
+            if (catBookmarks.length === 0) continue;
+            html += `\n    <DT><H3 ADD_DATE="${Date.now()}" LAST_MODIFIED="${Date.now()}">${escapeHtml(cat.name)}</H3>\n    <DL><p>`;
+            catBookmarks.forEach(bm => {
+                html += `\n        <DT><A HREF="${escapeHtml(bm.url)}" ADD_DATE="${bm.createdAt || Date.now()}">${escapeHtml(bm.title)}</A>`;
+            });
+            html += `\n    </DL><p>`;
+        }
+        // 单独处理未分类的书签? 已经包含在上面的 "未分类" 目录中
+        html += `\n</DL>`;
+        const blob = new Blob([html], {type: "text/html"});
+        const a = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        a.href = url;
+        a.download = "organized_bookmarks.html";
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast("导出成功！可直接导入浏览器，分类已整理为文件夹", "#2563eb");
+    }
+    
+    function renderAll() {
+        renderSidebar();
+        renderBookmarks();
+    }
+    
+    function showToast(msg, bgColor = "#1e466e") {
+        let toast = document.createElement("div");
+        toast.innerText = msg;
+        toast.style.position = "fixed";
+        toast.style.bottom = "24px";
+        toast.style.left = "50%";
+        toast.style.transform = "translateX(-50%)";
+        toast.style.backgroundColor = bgColor;
+        toast.style.color = "white";
+        toast.style.padding = "10px 20px";
+        toast.style.borderRadius = "60px";
+        toast.style.fontSize = "0.85rem";
+        toast.style.zIndex = "1200";
+        toast.style.boxShadow = "0 6px 14px rgba(0,0,0,0.1)";
+        document.body.appendChild(toast);
+        setTimeout(() => { toast.remove(); }, 2300);
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return "";
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+            return c;
+        });
+    }
+    
+    // 事件绑定
+    document.getElementById("importBtn").addEventListener("click", () => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".html,.htm";
+        input.onchange = (e) => {
+            if (input.files.length) importBookmarkHTML(input.files[0]);
+        };
+        input.click();
     });
-
-    // 控件变化监听
-    [contentInput, colorInput, alphaInput, sizeInput, gapInput, fontInput].forEach(el => {
-      el.addEventListener('input', () => {
-        document.getElementById('alphaVal').textContent = alphaInput.value + '%';
-        document.getElementById('sizeVal').textContent = sizeInput.value + '%';
-        document.getElementById('gapVal').textContent = gapInput.value + '%';
-        render();
-      });
-      el.addEventListener('change', () => {
-        document.getElementById('alphaVal').textContent = alphaInput.value + '%';
-        document.getElementById('sizeVal').textContent = sizeInput.value + '%';
-        document.getElementById('gapVal').textContent = gapInput.value + '%';
-        render();
-      });
+    document.getElementById("exportBtn").addEventListener("click", exportAsBookmarksHTML);
+    document.getElementById("autoSortBtn").addEventListener("click", autoSortUncategorized);
+    document.getElementById("resetDemoBtn").addEventListener("click", () => {
+        if (confirm("重置会丢失当前所有书签数据，恢复示例书签。确认吗？")) {
+            initDemoData();
+            renderAll();
+            showToast("已重置为示例书签 (包含豆包、绿软小站等)", "#1f5e3a");
+        }
     });
-
-    downloadLink.addEventListener('click', (e) => {
-      if (!currentImage || !contentInput.value.trim()) {
-        e.preventDefault();
-        alert('请先上传图片并输入水印文字');
-      }
-    });
-
-    updatePlaceholder();
-  })();
+    document.getElementById("addBookmarkGlobal").addEventListener("click", () => openAddModal(UNCATEGORIZED_ID));
+    
+    // 启动加载数据
+    if (!loadFromLocal() || bookmarks.length === 0) {
+        initDemoData();
+    }
+    renderAll();
 </script>
 </body>
 </html>
